@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+            http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <!-- ################################################################## -->
+    <!-- Non-WAS 배치 Agent 용 컴포넌트                                     -->
+    <!-- ################################################################## -->
+ 
+    <bean id="nbs.agent.AgentMain"
+        class="nexcore.scheduler.agent.internal.AgentMain"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Batch Agent 컴포넌트]]></description>
+        <property name="enabled"                 value = "true"/>
+        <property name="jobRunnerCallBack"       ref   = "nbs.agent.JobRunnerCallBack"/>
+        <property name="jobExecutionBoard"       ref   = "nbs.agent.JobExecutionBoard"/>
+        <property name="jobLogManager"           ref   = "nbs.agent.JobLogManager"/>
+        <property name="jobRunnerMap"            ref   = "nbs.agent.jobRunnerMap"/>
+    </bean>
+    
+    <bean id="nbs.agent.JobExecutionBoard"
+        class="nexcore.scheduler.agent.internal.JobExecutionBoard"
+        init-method="init" destroy-method="destroy">
+    </bean>
+    
+    <util:map id="nbs.agent.jobRunnerMap">
+		<entry key="POJO">
+			<bean class="nexcore.scheduler.agent.runner.PojoJobRunner" init-method="init" destroy-method="destroy">
+                <property name="jobClassLoadManager">
+                    <bean class="nexcore.scheduler.agent.runner.JobClassLoadManager"
+                        init-method="init" destroy-method="destroy">
+                        <property name="classBaseDirectory"  value ="${NEXCORE_HOME}/batch/classes" />
+                    </bean>  
+                </property>
+		        <property name="prePostProcessorManager"  ref  ="nbs.agent.PrePostProcessorManager"/>
+			</bean>
+		</entry>
+		<entry key="FILEWATCH">
+			<bean class="nexcore.scheduler.agent.runner.FileWatchJobRunner" init-method="init" destroy-method="destroy"/>
+		</entry>
+		<entry key="SLEEP">
+			<bean class="nexcore.scheduler.agent.runner.SleepJobRunner" init-method="init" destroy-method="destroy"/>
+		</entry>
+		<entry key="DBPROC">
+			<bean class="nexcore.scheduler.agent.runner.DBProcedureJobRunner" init-method="init" destroy-method="destroy"/>
+		</entry>
+		<entry key="QUARTZ">
+			<bean class="nexcore.scheduler.agent.runner.QuartzJobRunner" init-method="init" destroy-method="destroy">
+				<property name="scheduler" ref="my_quartz_scheduler"/>
+			</bean>
+		</entry>
+    </util:map>
+
+    <bean id="nbs.agent.PrePostProcessorManager"
+        class="nexcore.scheduler.agent.prepost.DefaultPrePostProcessorManager"
+        init-method="init" destroy-method="destroy">
+        <property name="jobExePreProcessors">
+            <list>
+            </list>
+        </property>
+        <property name="jobExePostProcessors">
+            <list>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="nbs.agent.AgentRMIExporter" class="nexcore.scheduler.agent.internal.AgentRmiServiceExporter">
+        <property name = "enable"                 value = "true"/>
+        <property name = "serviceName"            value = "BatchAgent"/>
+        <property name = "service"                ref   = "nbs.agent.AgentService"/>
+        <property name = "serviceInterface"       value = "nexcore.scheduler.entity.IAgentService"/>
+        <property name = "registryPort"           value = "8125"/>
+        <property name = "servicePort"            value = "8125"/>
+        <property name = "alwaysCreateRegistry"   value = "true"/>
+    </bean>
+    
+    <bean id="nbs.agent.AgentService"
+        class="nexcore.scheduler.agent.internal.AgentServiceImpl"
+        init-method="init" destroy-method="destroy" >
+        <description><![CDATA[Batch Agent Service]]></description>
+        <property name="agentMain"           ref   = "nbs.agent.AgentMain"/>
+    </bean>
+    
+    <bean id="nbs.agent.IControllerClient"
+        class="nexcore.scheduler.controller.client.ControllerClientByRmi"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Batch Controler 에 접속하는 Client. RMI 방식 ]]></description>
+        <property name="enabled"             value="true"/>
+        <property name="schedulerAddress"    value="localhost:8124"/>
+    </bean>
+
+    <bean id="nbs.agent.JobRunnerCallBack"
+        class="nexcore.scheduler.agent.internal.RunResultCallBack"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Job 의 실행 결과를 스케줄러로 callback ]]></description>
+        <property name="controllerClient"    ref  ="nbs.agent.IControllerClient"/>
+        <property name="clientConcurrentMax" value="5"/>
+    </bean>
+
+    <bean id="nbs.agent.JobStateCallbackSender"
+        class="nexcore.scheduler.agent.internal.JobStateCallbackSender"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Job End Callback 장애시 재처리 데몬]]></description>
+        <property name="enabled"             value="true"/>
+        <property name="jobExecutionBoard"   ref  ="nbs.agent.JobExecutionBoard" />
+        <property name="controllerClient"    ref  ="nbs.agent.IControllerClient"/>
+        <property name="jobRunnerCallBack"   ref  ="nbs.agent.JobRunnerCallBack"/>
+    </bean>
+
+    <bean id="nbs.agent.JobLogManager"
+        class="nexcore.scheduler.agent.joblog.JobLogManager"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Job Log Manager]]></description>
+        <property name="factory">
+            <bean class="nexcore.scheduler.agent.joblog.FileLoggerFactory" init-method="init" destroy-method="destroy">
+                <description><![CDATA[Job File Log 생성기]]></description>
+                <property name="baseDir"           value="/logs"/>
+                <property name="separatePerDay"    value="true"/>
+                <property name="separatePerJobId"  value="false"/>
+                <!-- property name="encoding"          value="MS949"/ -->
+                <property name="defaultLogLevel"   value="DEBUG"/> <!-- debug, info, warn, error, fatal, off -->
+                <property name="packageNamePrefixListForNotPrintFilename">
+                    <list>
+                        <value>nexcore.</value>
+                    </list>
+                </property>
+            </bean>
+        </property>
+    </bean>
+    
+    <!--bean id="nbs.agent.OldFileCleaner"
+        class="nexcore.scheduler.agent.internal.OldFileCleaner"
+        init-method="init" destroy-method="destroy">
+        <property name="autoDeleteOldFile" value="true"/>
+        <property name="executionTime"     value="1900"/>
+        <property name="keepPeriod"        value="M1"/>
+        <property name="targetLocations">
+            <list>
+                <value>${nbs.agent.logdir.${NEXCORE_ID}}</value>
+            </list>
+        </property>
+    </bean-->
+</beans>
+
+
+

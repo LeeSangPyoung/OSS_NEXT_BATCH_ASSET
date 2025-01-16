@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap
+    PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="nbs.controller">
+
+    <resultMap id="JobExecution-ResultMap" class="nexcore.scheduler.entity.JobExecution">
+        <result property="procDate"          column="PROC_DATE"/>
+        <result property="baseDate"          column="BASE_DATE"/>
+        <result property="jobId"             column="JOB_ID"/>
+        <result property="jobInstanceId"     column="JOB_INSTANCE_ID"/>
+        <result property="jobExecutionId"    column="JOB_EXECUTION_ID"/>
+        <result property="jobType"           column="JOB_TYPE"/>
+        <result property="agentNode"         column="AGENT_NODE"/>
+        <result property="state"             column="EXE_STATE"/>
+        <result property="runCount"          column="RUN_COUNT"/>
+        <result property="startTimeTS"       column="START_TIME"/>
+        <result property="endTimeTS"         column="END_TIME"/>
+        <result property="returnCode"        column="RETURN_CODE" nullValue="99"/>
+        <result property="errorMsg"          column="ERROR_MSG"/>
+        <result property="progressCurrent"   column="PROGRESS_CURRENT" nullValue="0"/>
+        <result property="progressTotal"     column="PROGRESS_TOTAL"   nullValue="0"/>
+        <result property="operatorType"      column="OPERATOR_TYPE"/>
+        <result property="operatorId"        column="OPERATOR_ID"/>
+        <result property="operatorIp"        column="OPERATOR_IP"/>
+        <result property="lastModifyTime"    column="LAST_MODIFY_TIME"/>
+    </resultMap>
+
+    <resultMap id="ParamsResults-ResultMap" class="hmap">
+        <result property="JOB_EXECUTION_ID"  column="JOB_EXECUTION_ID"/>
+        <result property="DATA_XML"          column="DATA_XML"  jdbcType="VARCHAR" javaType="java.lang.String"/>
+    </resultMap>
+
+    <select id="selectJobExecution" parameterClass="string" resultMap="JobExecution-ResultMap">/* selectJobExecution */
+        SELECT *
+          FROM NBS_JOB_EXE
+         WHERE JOB_EXECUTION_ID = #jobExecutionId#
+    </select>
+
+    <select id="selectJobExeParams" parameterClass="string" resultMap="ParamsResults-ResultMap">/* selectJobExeParams */
+        SELECT JOB_EXECUTION_ID, DATA_XML
+          FROM NBS_JOB_EXE_OBJ_STORE
+         WHERE JOB_EXECUTION_ID = #jobExecutionId#
+           AND DATA_TYPE        = 'P'
+    </select>
+
+    <select id="selectJobExeReturnValues" parameterClass="string" resultMap="ParamsResults-ResultMap">/* selectJobExeReturnValues */
+        SELECT JOB_EXECUTION_ID, DATA_XML
+          FROM NBS_JOB_EXE_OBJ_STORE
+         WHERE JOB_EXECUTION_ID = #jobExecutionId#
+           AND DATA_TYPE        = 'R'
+    </select>
+
+    <select id="selectJobExecutionsByQuery" parameterClass="string" resultMap="JobExecution-ResultMap">/* selectJobExecutionsByQuery */
+        SELECT *
+          FROM NBS_JOB_EXE
+          $queryCondition$
+         ORDER BY JOB_EXECUTION_ID
+    </select>
+
+    <select id="selectJobExeParamsByQuery" parameterClass="string" resultMap="ParamsResults-ResultMap">/* selectJobExeParamsByQuery */
+        SELECT JOB_EXECUTION_ID, DATA_XML
+          FROM NBS_JOB_EXE_OBJ_STORE
+         WHERE JOB_EXECUTION_ID in (SELECT JOB_EXECUTION_ID FROM NBS_JOB_EXE $queryCondition$)
+           AND DATA_TYPE        = 'P'
+    </select>
+
+    <select id="selectJobExeReturnValuesByQuery" parameterClass="string" resultMap="ParamsResults-ResultMap">/* selectJobExeReturnValuesByQuery */
+        SELECT JOB_EXECUTION_ID, DATA_XML
+          FROM NBS_JOB_EXE_OBJ_STORE
+         WHERE JOB_EXECUTION_ID in (SELECT JOB_EXECUTION_ID FROM NBS_JOB_EXE $queryCondition$)
+           AND DATA_TYPE        = 'R'
+    </select>
+
+    <insert id="insertJobExecution" parameterClass="nexcore.scheduler.entity.JobExecution">/* insertJobExecution */
+        INSERT INTO NBS_JOB_EXE
+           (PROC_DATE, BASE_DATE, JOB_ID, JOB_INSTANCE_ID, JOB_EXECUTION_ID, JOB_TYPE, AGENT_NODE, EXE_STATE, ERROR_MSG, RUN_COUNT, START_TIME, END_TIME, OPERATOR_TYPE, OPERATOR_ID, OPERATOR_IP, LAST_MODIFY_TIME)
+        VALUES
+           (#procDate#, #baseDate#, #jobId#, #jobInstanceId#, #jobExecutionId#, #jobType#, #agentNode#, #state#, #errorMsg:VARCHAR#, #runCount#, #startTimeTS:VARCHAR#, #endTimeTS:VARCHAR#, #operatorType:VARCHAR#, #operatorId:VARCHAR#, #operatorIp:VARCHAR#, #lastModifyTime#)
+    </insert>
+
+    <insert id="insertJobExeParam" parameterClass="map">/* insertJobExeParam */
+        INSERT INTO NBS_JOB_EXE_OBJ_STORE
+           (JOB_EXECUTION_ID, DATA_TYPE, DATA_XML)
+        VALUES
+           (#jobExecutionId#, 'P', #xml:VARCHAR#)/*CLOB*/
+    </insert>
+
+    <insert id="insertJobExeReturnValue" parameterClass="map">/* insertJobExeReturnValue */
+        INSERT INTO NBS_JOB_EXE_OBJ_STORE
+           (JOB_EXECUTION_ID, DATA_TYPE, DATA_XML)
+        VALUES
+           (#jobExecutionId#, 'R', #xml:VARCHAR#) /*CLOB*/
+    </insert>
+
+    <update id="updateJobExecution" parameterClass="nexcore.scheduler.entity.JobExecution">/* updateJobExecution */
+        UPDATE NBS_JOB_EXE
+           SET EXE_STATE =        #state#,
+               START_TIME =       #startTimeTS:VARCHAR#,
+               END_TIME =         #endTimeTS:VARCHAR#,
+               RETURN_CODE =      #returnCode#,
+               ERROR_MSG =        #errorMsg:VARCHAR#,
+               PROGRESS_CURRENT = #progressCurrent#,
+               PROGRESS_TOTAL =   #progressTotal#,
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE JOB_EXECUTION_ID = #jobExecutionId#
+    </update>
+
+    <update id="updateJobExecutionStateOnly" parameterClass="map">/* updateJobExecutionStateOnly */
+        UPDATE NBS_JOB_EXE
+           SET EXE_STATE =        #state#,
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE JOB_EXECUTION_ID = #jobExecutionId#
+           AND EXE_STATE =        #oldState#
+    </update>
+
+    <!-- Not Ended Job only  -->
+    <update id="updateJobExecutionForEnd" parameterClass="nexcore.scheduler.entity.JobExecution">/* updateJobExecutionForEnd */
+        UPDATE NBS_JOB_EXE
+           SET EXE_STATE =        #state#,
+               START_TIME =       #startTimeTS:VARCHAR#,
+               END_TIME =         #endTimeTS:VARCHAR#,
+               RETURN_CODE =      #returnCode#,
+               ERROR_MSG =        #errorMsg:VARCHAR#,
+               PROGRESS_CURRENT = #progressCurrent#,
+               PROGRESS_TOTAL =   #progressTotal#,
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE JOB_EXECUTION_ID = #jobExecutionId#
+           AND EXE_STATE       != 7
+    </update>
+
+    <select id="selectLastExecutionId" parameterClass="string" resultClass="string">/* selectLastExecutionId */
+        SELECT MAX(JOB_EXECUTION_ID) as LAST_JOB_EXE_ID
+          FROM NBS_JOB_EXE
+         WHERE JOB_INSTANCE_ID=#jobInstanceId#
+    </select>
+
+    <select id="selectLastEndedExecutionId" parameterClass="string" resultClass="string">/* selectLastEndedExecutionId */
+        SELECT MAX(JOB_EXECUTION_ID) as LAST_JOB_EXE_ID
+          FROM NBS_JOB_EXE
+         WHERE JOB_INSTANCE_ID=#jobInstanceId#
+           AND EXE_STATE=7
+    </select>
+
+</sqlMap>

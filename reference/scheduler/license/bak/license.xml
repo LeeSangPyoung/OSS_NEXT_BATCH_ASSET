@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<license version="2.0">
+	<licenseInfo>
+		<customerCorpName>SKT</customerCorpName>
+		<projectName>SKT TANGO</projectName>
+		<hostName>
+			<list>tg-d-bat-man1</list>
+		</hostName>
+		<macAddr>
+			<list>FA-16-3E-19-E8-68</list>
+		</macAddr>
+		<type>Standard</type>
+		<startDay>2017-02-10</startDay>
+		<endDay>9999-99-99</endDay>
+	</licenseInfo>
+	<productInfo>
+		<product>
+			<productCode>NBS</productCode>
+			<productVersion>4.0</productVersion>
+			<productName>Batch Scheduler</productName>
+			<productEdition>Standard</productEdition>
+			<attribute>
+				<agentLimit>2</agentLimit>
+				<jobLimit>0</jobLimit>
+				<dualServer>false</dualServer>
+			</attribute>
+		</product>
+	</productInfo>
+	<sign>MCwCFG254el6lrlz2YEOCPzJ2QEsEoGSAhR5KDw9NLpgtysokqsrvYEMXy1OwA==</sign>
+	<key>MIIBtzCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH7WT2NWPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaFpEy9nXzrith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6OuqC+VdMCz0HgmdRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6ASQ7zKTxvqhRkImog9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoDgYQAAoGAAitNMIZnHtoJm1Zp5mk/NjCSvcYsejgo/LiL+1hRy6Du59yLN7ylDx1F7oqHy3D5z65402GXiMPdmhnuhZTjW2rYzSI5D71OzgK1aRvD3PO+m+vTcS54oSYW3t1p54wBP5+QgDEYBI6sO+cmsxSlnwUlkfE5ScCSjrzZmAXnIEg=</key>
+</license>

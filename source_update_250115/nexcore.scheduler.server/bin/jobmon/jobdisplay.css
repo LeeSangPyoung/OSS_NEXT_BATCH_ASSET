@@ -1,0 +1,35 @@
+.jobdesc_font {font-weight:bold; color:#506aea }
+
+.jobstate_font_I { font-weight:bold; color:#000000; }
+.jobstate_font_W { font-weight:bold; color:#000000; }
+.jobstate_font_O { font-weight:bold; color:#0000CD; }
+.jobstate_font_F { font-weight:bold; color:#EB0000; }
+.jobstate_font_R { font-weight:bold; color:#DD8200; }
+.jobstate_font_P { font-weight:bold; color:#52E222; }
+.jobstate_font_S { font-weight:bold; color:#8B4513; }
+.jobstate_font_G { font-weight:bold; color:#008080; }
+.jobstate_font_X { font-weight:bold; color:#239999; }
+
+.jobstate_bgcolor_I_hover, .jobstate_bgcolor_I { background-color:#EEEEEE;}
+.jobstate_bgcolor_W_hover, .jobstate_bgcolor_W { background-color:#EEEEEE;}
+.jobstate_bgcolor_O_hover, .jobstate_bgcolor_O { background-color:#FFFFFE;}
+.jobstate_bgcolor_F_hover, .jobstate_bgcolor_F { background-color:#FFBBBB;}
+.jobstate_bgcolor_R_hover, .jobstate_bgcolor_R { background-color:#FFFF88;}
+.jobstate_bgcolor_P_hover, .jobstate_bgcolor_P { background-color:#AAAA00;}
+.jobstate_bgcolor_S_hover, .jobstate_bgcolor_S { background-color:#EEEEEE;}
+.jobstate_bgcolor_G_hover, .jobstate_bgcolor_G { background-color:#60A0A0;}
+.jobstate_bgcolor_X_hover, .jobstate_bgcolor_X { background-color:#99EEEE;}
+
+.jobstate_bgcolor_I_hover:hover { background-color:#BBBBBB;}
+.jobstate_bgcolor_W_hover:hover { background-color:#BBBBBB;}
+.jobstate_bgcolor_O_hover:hover { background-color:#BBBBFF;}
+.jobstate_bgcolor_F_hover:hover { background-color:#FF8888;}
+.jobstate_bgcolor_R_hover:hover { background-color:#FFFF00;}
+.jobstate_bgcolor_P_hover:hover { background-color:#888800;}
+.jobstate_bgcolor_S_hover:hover { background-color:#BBBBBB;}
+.jobstate_bgcolor_G_hover:hover { background-color:#609090;}
+.jobstate_bgcolor_X_hover:hover { background-color:#99FFFF;}
+
+.hand {cursor : pointer}
+
+

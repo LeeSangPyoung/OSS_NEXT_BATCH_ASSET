@@ -1,0 +1,144 @@
+<configuration debug="false" scan="true" scanPeriod="5 seconds">
+<!-- Test Local -->
+	<!-- 일반적인 FILE LOG PATTERN -->
+	<property name="FILE_LOG_PATTERN" value="[%d{yyyy-MM-dd HH:mm:ss.SSS}][%5p][%t][%c] %m%n" />
+	
+	<!-- CONSOLE LOG PATTERN -->
+	<property name="CONSOLE_LOG_PATTERN" value="%d{[yyyy.MM.dd HH:mm:ss]} [%-35.35c{1}] %-5p %m%n" />
+	<!-- Tangorest log pattern -->
+	<property name="TANGOREST" value="%m%n"/>
+		<!-- Console Appender -->
+	<appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>${CONSOLE_LOG_PATTERN}</pattern>
+		</encoder>
+	</appender>
+	
+	<appender name="file_scheduler" calss="ch.qos.logback.core.rolling.RollingFileAppender">
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<!-- daily rollover -->
+			<fileNamePattern>${NEXCORE_LOG_HOME}/scheduler-%d{yyyy-MM-dd}.log</fileNamePattern>
+		</rollingPolicy>
+		<encoder>
+				<pattern>${FILE_LOG_PATTERN}</pattern>
+		</encoder>
+		<!-- <param name="encoding" value="UTF-8" />
+		     		<param name="Directory" value="${NEXCORE_LOG_HOME}" />
+		<param name="FileNamePattern" value="'scheduler-'yyyyMMdd'.log'" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="![%d] [%-5p] %m%n" />
+		</layout> -->
+	</appender>
+	
+	<appender name="file_jetty" calss="ch.qos.logback.core.rolling.RollingFileAppender">
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<!-- daily rollover -->
+			<fileNamePattern>${NEXCORE_LOG_HOME}/jetty-%d{yyyy-MM-dd}.log</fileNamePattern>
+		</rollingPolicy>
+		<encoder>
+				<pattern>${FILE_LOG_PATTERN}</pattern>
+		</encoder>
+        <!-- <param name="encoding"        value="UTF-8" />
+                     <param name="Directory"       value="${NEXCORE_LOG_HOME}" />  
+        <param name="FileNamePattern" value="'jetty-'yyyyMMdd'.log'" />  
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="![%d] [%-5p] %m%n" />
+        </layout> -->
+    </appender>
+
+    <appender name="file_scheduler_agent" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    	<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<!-- daily rollover -->
+			<fileNamePattern>${NEXCORE_LOG_HOME}/scheduler-agent-%d{yyyy-MM-dd}.log</fileNamePattern>
+		</rollingPolicy>
+		<encoder>
+				<pattern>${FILE_LOG_PATTERN}</pattern>
+		</encoder>
+        <!-- <param name="encoding"        value="UTF-8" />
+                     <param name="Directory"       value="${NEXCORE_LOG_HOME}" />  
+        <param name="FileNamePattern" value="'scheduler-agent-'yyyyMMdd'.log'" />  
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="![%d] [%-5p] %m%n" />
+        </layout> -->
+    </appender>
+    
+    <appender name="file_tango" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    	<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<!-- daily rollover -->
+			<fileNamePattern>${NEXCORE_LOG_HOME}/tango-notify-%d{yyyy-MM-dd}.log</fileNamePattern>
+		</rollingPolicy>
+		<encoder>
+				<pattern>${FILE_LOG_PATTERN}</pattern>
+		</encoder>
+        <!-- <param name="encoding"        value="UTF-8" />
+                     <param name="Directory"       value="${NEXCORE_LOG_HOME}" />  
+        <param name="FileNamePattern" value="'scheduler-agent-'yyyyMMdd'.log'" />  
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="![%d] [%-5p] %m%n" />
+        </layout> -->
+    </appender>
+    
+    <appender name="tangorest" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${NEXCORE_LOG_HOME}/tangorest.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<!-- daily rollover -->
+			<fileNamePattern>${NEXCORE_LOG_HOME}/bak/tangorest.%d{yyyy-MM-dd}.log</fileNamePattern>
+		</rollingPolicy>
+		<encoder>
+				<pattern>${TANGOREST}</pattern>
+		</encoder>
+	</appender>
+	
+	<appender name="async_tangorest" class="ch.qos.logback.classic.AsyncAppender">
+		<appender-ref ref="tangorest"/>
+	</appender>
+	
+	<logger name="com.skt.tango.tangorest.http.utils.TangoRestLoggingSupport" level="INFO" additivity="false">
+		<appender-ref ref="async_tangorest" />
+	</logger>
+	
+    <!-- <logger name="nexcore.scheduler" additivity="false">
+         		<level value="DEBUG" />
+		<appender-ref ref="file_scheduler" />
+	</logger>
+	 -->
+	<logger name="org.mortbay.jetty" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="file_jetty" />
+	</logger>
+	
+	<logger name="nexcore.scheduler" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="file_scheduler_agent" />
+	</logger>
+	
+	<logger name="com.skt.tango" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="file_tango" />
+		<appender-ref ref="console" />
+	</logger>
+	
+	<logger name="com.lambdaworks.redis.protocol" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="file_tango" />
+		<appender-ref ref="console" />
+	</logger>
+	
+	<logger name="nexcore.scheduler" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="file_tango" />
+		<appender-ref ref="console" />
+	</logger>
+	
+	<logger name="io.netty.channel" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="file_tango" />
+	</logger>
+	
+	<!-- Root INFO declaration -->
+	<root level="INFO" additivity="false">
+		<appender-ref ref="file_scheduler" />
+		<appender-ref ref="console" />
+    </root>
+    
+</configuration>

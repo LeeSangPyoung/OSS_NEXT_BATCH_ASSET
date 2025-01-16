@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMapConfig PUBLIC "-//iBATIS.com//DTD SQL Map Config 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-config-2.dtd">
+
+<sqlMapConfig>
+    <properties resource="properties/nexcore-scheduler-server.properties"/>
+    <settings useStatementNamespaces="true" cacheModelsEnabled="false" defaultStatementTimeout="60" />
+    <typeAlias type="java.util.HashMap" alias="hmap" />
+    <typeAlias type="com.ibatis.sqlmap.engine.type.ClobTypeHandlerCallback" alias="clob" />
+<!--
+    <sqlMap resource="nexcore/scheduler/sql/Controller.${scheduler.db.vendor}.xsql"/>
+    <sqlMap resource="nexcore/scheduler/sql/Scheduler.${scheduler.db.vendor}.xsql"/>
+    <sqlMap resource="nexcore/scheduler/sql/Monitor.${scheduler.db.vendor}.xsql"/>
+-->
+<!--
+    <sqlMap resource="nexcore/scheduler/sql/Controller.postgresql.xsql"/>
+    <sqlMap resource="nexcore/scheduler/sql/Scheduler.postgresql.xsql"/>
+    <sqlMap resource="nexcore/scheduler/sql/Monitor.postgresql.xsql"/>
+-->
+</sqlMapConfig>

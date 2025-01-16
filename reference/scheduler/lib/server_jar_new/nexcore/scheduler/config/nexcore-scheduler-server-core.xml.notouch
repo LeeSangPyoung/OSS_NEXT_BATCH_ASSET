@@ -1,0 +1,528 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:util="http://www.springframework.org/schema/util"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+            http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+            http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+            http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!-- ################################################################## -->
+    <!-- 배치 스케줄러 코어 영역. DO NOT TOUCH                              -->
+    <!-- ################################################################## -->
+
+    <!-- ################################################################## -->
+    <!-- 배치 컨트롤러 컴포넌트                                             -->
+    <!-- ################################################################## -->
+    
+   	<bean id="nbs.PropertyLocationList" class="org.springframework.beans.factory.config.ListFactoryBean">
+        <description>
+            <![CDATA[Spring context 초기화시 임의로 properties를 목록]]>
+        </description>
+    	<property name="sourceList">
+			<list>
+                <value>properties/*.properties</value>
+			</list>
+    	</property>
+	</bean>
+    
+    <bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <description>
+            <![CDATA[Spring(3.x이상) context 초기화시 임의로 properties를 지정하는 기능.]]>
+        </description>
+		<property name="systemPropertiesModeName"       value="SYSTEM_PROPERTIES_MODE_OVERRIDE"/>
+		<property name="ignoreUnresolvablePlaceholders" value="true"/>
+	    <property name="ignoreResourceNotFound"         value="true"/>
+	    <property name="fileEncoding"                   value="UTF-8"/>
+		<property name="locations"                      ref="nbs.PropertyLocationList"/>
+	</bean>
+    
+    <bean id="nbs.scheduler.DBChecker" class="nexcore.scheduler.controller.internal.DBChecker" init-method="init" destroy-method="destroy">
+        <property name="dataSource"             ref  ="nbs.scheduler.DataSource"/> 
+    </bean>
+    
+    <bean id="nbs.scheduler.LicenseManager" class="nexcore.scheduler.core.internal.LicenseManager" init-method="init" destroy-method="destroy" lazy-init="true">
+        <property name="filename"                value="${scheduler.license}"/>
+    	<property name="jobDefinitionManager"    ref  ="nbs.scheduler.JobDefinitionManager"/>
+        <property name="agentInfoManager"        ref  ="nbs.monitor.AgentInfoManager"/>
+    </bean>
+    
+    <bean id="nbs.scheduler.SqlMapClient" class="org.springframework.orm.ibatis.SqlMapClientFactoryBean" depends-on="nbs.scheduler.DBChecker">
+        <description><![CDATA[주 트랜잭션용]]></description>
+        <property name="configLocation"         value="sql/nexcore-scheduler-server-sql-config.xml"/>
+        <property name="dataSource"             ref  ="nbs.scheduler.DataSource"/>
+        <property name="transactionConfigClass" value="com.ibatis.sqlmap.engine.transaction.jdbc.JdbcTransactionConfig"/>
+    </bean>
+    
+    <bean id="nbs.scheduler.SqlMapClientAnother" class="org.springframework.orm.ibatis.SqlMapClientFactoryBean">
+        <description><![CDATA[별도 트랜잭션용]]></description>
+        <property name="configLocation"         value="sql/nexcore-scheduler-server-sql-config.xml"/>
+        <property name="dataSource"             ref  ="nbs.scheduler.DataSource"/>
+        <property name="transactionConfigClass" value="com.ibatis.sqlmap.engine.transaction.jdbc.JdbcTransactionConfig"/>
+    </bean>
+
+    <bean id="nbs.controller.ControllerServiceRMIExporter" class="org.springframework.remoting.rmi.RmiServiceExporter">
+        <property name = "serviceName"       value = "BatchController"/>
+        <property name = "service"           ref   = "nbs.controller.ControllerService"/>
+        <property name = "serviceInterface"  value = "nexcore.scheduler.entity.IControllerService"/>
+        <property name = "registryPort"      value = "${scheduler.rmi.server.port.${NEXCORE_ID}}"/>
+        <property name = "servicePort"       value = "${scheduler.rmi.server.port.${NEXCORE_ID}}"/>
+    </bean>
+    
+    <bean id="nbs.controller.ControllerService"
+        class="nexcore.scheduler.controller.internal.ControllerServiceImpl"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Batch Controller RMI Service]]></description>
+        <property name="controllerMain"      ref="nbs.controller.ControllerMain"/>
+    </bean>
+
+    <bean id="nbs.controller.ControllerMain"
+        class="nexcore.scheduler.controller.internal.ControllerMain"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Controller의 매인 클래스.]]></description>
+        <property name="dupStartChecker">
+            <bean class="nexcore.scheduler.controller.internal.DupStartChecker" init-method="init" destroy-method="destroy">
+                <property name = "enable"            value = "${scheduler.check.dup.start.${NEXCORE_ID}}"/>
+                <property name = "registryPort"      value = "${scheduler.rmi.server.port.${NEXCORE_ID}}"/>
+            </bean>
+        </property>
+        <property name="sqlMapClient"            ref  ="nbs.scheduler.SqlMapClient" />
+        <property name="jobExecutionIdMaker"     ref  ="nbs.controller.JobExecutionIdMaker"/>
+        <property name="jobDefinitionManager"    ref  ="nbs.scheduler.JobDefinitionManager"/>
+        <property name="jobDefinitionStgManager" ref  ="nbs.scheduler.JobDefinitionStgManager"/>
+        <property name="jobInstanceManager"      ref  ="nbs.scheduler.JobInstanceManager"/>
+        <property name="jobExecutionManager"     ref  ="nbs.controller.JobExecutionManager"/>
+        <property name="jobRunResultProcessor"   ref  ="nbs.scheduler.JobRunResultProcessor"/>
+        <property name="runningJobStateMonitor"  ref  ="nbs.controller.RunningJobStateMonitor"/>
+        <property name="parameterManager"        ref  ="nbs.controller.ParameterManager"/>
+        <property name="agentInfoManager"        ref  ="nbs.monitor.AgentInfoManager"/>
+        <property name="licenseManager"          ref = "nbs.scheduler.LicenseManager"/>
+        <property name="activator"               ref  ="nbs.scheduler.Activator"/>
+        <property name="jobStarter"              ref  ="nbs.scheduler.JobStarter"/>
+        <property name="timeScheduler"           ref  ="nbs.scheduler.TimeScheduler" />
+        <property name="dailyActivator"          ref  ="nbs.scheduler.DailyActivator" />
+        <property name="dayScheduler"            ref  ="nbs.scheduler.DayScheduler" />
+        <property name="scheduleCalendar"        ref  ="nbs.scheduler.ScheduleCalendar" />
+        <property name="jobInfoValidator"        ref  ="nbs.controller.JobInfoValidator" />
+        <property name="jobTypeManager"          ref  ="nbs.controller.JobTypeManager" />
+        <property name="customConfig"            ref  ="nbs.controller.CustomConfig" />
+        <property name="parallelRunningCounter"  ref  ="nbs.scheduler.ParallelRunningCounter" />
+        <property name="jobRunPreProcessor"      ref  ="nbs.controller.JobRunPreProcessor" />
+        <property name="jobInstanceIdMap"        ref  ="nbs.scheduler.JobInstanceIdMap"/>
+        <property name="repeatManager"           ref  ="nbs.scheduler.RepeatManager" />
+        <property name="peerClient"              ref  ="nbs.controller.ha.PeerClient" />
+        <property name="userManager"             ref  ="nbs.monitor.UserManager" />
+    </bean>
+    
+    <bean id="nbs.controller.JobTypeManager"
+        class="nexcore.scheduler.controller.internal.JobTypeManager"
+        init-method="init" destroy-method="destroy">
+        <property name="jobTypeUsing"            value="${scheduler.jobtype.list}" />
+    </bean>
+
+    <bean id="nbs.controller.CustomConfig"
+        class="nexcore.scheduler.controller.internal.CustomConfig"
+        init-method="init" destroy-method="destroy">
+        <property name="logLevelUsing"           value="${scheduler.loglevel.list.${NEXCORE_ID}}" />
+        <property name="jobAliveDay"             value="${scheduler.jobaliveday}" /> <!-- default=0, if you want then increase.-->
+    </bean>
+
+    <bean id="nbs.monitor.MonitorServiceRMIExporter" class="org.springframework.remoting.rmi.RmiServiceExporter">
+        <property name = "serviceName"       value = "BatchMonitor"/>
+        <property name = "service"           ref   = "nbs.monitor.MonitorService"/>
+        <property name = "serviceInterface"  value = "nexcore.scheduler.entity.IMonitorService"/>
+        <property name = "registryPort"      value = "${scheduler.rmi.server.port.${NEXCORE_ID}}"/>
+        <property name = "servicePort"       value = "${scheduler.rmi.server.port.${NEXCORE_ID}}"/>
+    </bean>
+    
+    <bean id="nbs.monitor.MonitorService"
+        class="nexcore.scheduler.monitor.internal.MonitorServiceImpl"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Batch Monitor RMI Service]]></description>
+        <property name="monitorMain"         ref="nbs.monitor.MonitorMain"/>
+        <property name="systemMonitor"       ref="nbs.scheduler.SystemMonitor"/>
+    </bean>
+
+    <bean id="nbs.monitor.MonitorMain"
+        class="nexcore.scheduler.monitor.internal.MonitorMain"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Monitor의 메인 클래스. JMX 방식으로 operation 제공.]]></description>
+        <property name="sqlMapClient"             ref  ="nbs.scheduler.SqlMapClient" />
+        <property name="viewFilterManager"        ref  ="nbs.monitor.ViewFilterManager"/>
+        <property name="agentInfoManager"         ref  ="nbs.monitor.AgentInfoManager"/>
+        <property name="agentMonitor"             ref  ="nbs.monitor.AgentMonitor"/>
+        <property name="jobNotifyManager"         ref  ="nbs.monitor.JobNotifyManager"/>
+        <property name="userManager"              ref  ="nbs.monitor.UserManager" />
+        <property name="jobExecutionManager"      ref  ="nbs.controller.JobExecutionManager"/>
+        <property name="jobInstanceManager"       ref  ="nbs.scheduler.JobInstanceManager"/>
+        <property name="jobProgressStatusManager" ref  ="nbs.monitor.JobProgressStatusManager"/>
+        <property name="jobGroupManager"          ref  ="nbs.monitor.JobGroupManager"/>
+        <property name="peerClient"               ref  ="nbs.controller.ha.PeerClient" />
+        <property name="licenseManager"           ref = "nbs.scheduler.LicenseManager"/>
+    </bean>
+
+    <bean id="nbs.controller.ha.PeerServiceRMIExporter" class="org.springframework.remoting.rmi.RmiServiceExporter">
+        <property name = "serviceName"            value = "PeerService"/>
+        <property name = "service"                ref   = "nbs.controller.ha.PeerService"/>
+        <property name = "serviceInterface"       value = "nexcore.scheduler.controller.ha.IPeerService"/>
+        <property name = "registryPort"           value = "${scheduler.rmi.server.port.${NEXCORE_ID}}"/>
+        <property name = "servicePort"            value = "${scheduler.rmi.server.port.${NEXCORE_ID}}"/>
+    </bean>
+    
+    <bean id="nbs.controller.ha.PeerService"
+        class="nexcore.scheduler.controller.ha.server.PeerServiceImpl"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[RMI Service to peer node]]></description>
+        <property name="controllerMain"           ref  ="nbs.controller.ControllerMain"/>
+        <property name="monitorMain"              ref  ="nbs.monitor.MonitorMain"/>
+        <property name="preJobWaitingPool"        ref  ="nbs.scheduler.PreJobWaitingPool" />
+        <property name="parallelJobWaitingPool"   ref  ="nbs.scheduler.ParallelJobWaitingPool" />
+    </bean>
+
+    <bean id="nbs.controller.ha.PeerClient"
+        class="nexcore.scheduler.controller.ha.client.PeerClientByRmi"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[RMI Service client to peer node]]></description>
+        <property name="licenseManager"           ref = "nbs.scheduler.LicenseManager"/>
+        <property name="peerAddress"              value = "${scheduler.peer.address.${NEXCORE_ID}}"/>
+    </bean>
+
+
+    <bean id="nbs.monitor.JobProgressStatusManager"
+        class="nexcore.scheduler.monitor.internal.JobProgressStatusManager"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[진행률을 모니터링.]]></description>
+        <property name="enable"                         value="true"/>
+        <property name="jobExecutionManager"            ref  ="nbs.controller.JobExecutionManager"/>
+        <property name="cacheSize"                      value="10000"/>
+    </bean>
+
+    <bean id="nbs.monitor.AgentMonitor"
+        class="nexcore.scheduler.monitor.internal.AgentMonitor"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[에이전트 모니터링]]></description>
+        <property name="enable"                         value="true"/>
+        <property name="agentInfoManager"               ref  ="nbs.monitor.AgentInfoManager"/>
+        <property name="jobProgressStatusManager"       ref  ="nbs.monitor.JobProgressStatusManager"/>
+        <property name="agentPollingIntervalInSec"      value="2"/>
+        <property name="agentPollingThreadPoolCoreSize" value="5"/>
+        <property name="agentPollingThreadPoolMaxSize"  value="30"/>
+        <property name="peerClient"                     ref  ="nbs.controller.ha.PeerClient" />
+    </bean>
+
+    <bean id="nbs.monitor.AgentInfoManager"
+        class="nexcore.scheduler.monitor.internal.AgentInfoManager"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Agent 관리]]></description>
+        <property name="sqlMapClient"            ref  ="nbs.scheduler.SqlMapClient" />
+        <property name="internalAgentClient">
+            <bean class="nexcore.scheduler.agent.client.AgentClientByLocal" init-method="init" destroy-method="destroy">
+                <description><![CDATA[Internal Agent 에 접속하는 Client. Local call 방식 ]]></description>
+                <property name="agentService"    ref="nbs.agent.AgentService" />
+            </bean> 
+        </property>
+    </bean>
+
+<!--
+    <bean id="nbs.controller.JobExecutionIdMaker"
+        class="nexcore.scheduler.controller.internal.DefaultJobExecutionIdMaker"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Job Execution Id 를 생성]]></description>
+        <property name="sqlMapClient"        ref="nbs.scheduler.SqlMapClient" />
+    </bean>
+-->
+    <bean id="nbs.controller.JobExecutionIdMaker"
+        class="nexcore.scheduler.controller.internal.TableBaseJobExecutionIdMaker"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[테이블 방식 Job Execution Id 를 생성기]]></description>
+        <property name="sqlMapClient" ref="nbs.scheduler.SqlMapClientAnother" />
+    </bean>
+
+    <bean id="nbs.controller.JobExecutionManager"
+        class="nexcore.scheduler.controller.internal.JobExecutionManager"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[JobExecution 관리함]]></description>
+        <property name="sqlMapClient"        ref="nbs.scheduler.SqlMapClient" />
+    </bean>
+    
+    <bean id="nbs.controller.RunningJobStateMonitor"
+        class="nexcore.scheduler.controller.internal.RunningJobStateMonitor"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[System Monitor]]></description>
+        <property name="jobInstanceManager"      ref  ="nbs.scheduler.JobInstanceManager" />
+        <property name="jobExecutionManager"     ref  ="nbs.controller.JobExecutionManager"/>
+        <property name="jobNotifyManager"         ref  ="nbs.monitor.JobNotifyManager"/>
+        <property name="agentInfoManager"        ref  ="nbs.monitor.AgentInfoManager"/>
+        <property name="agentMonitor"            ref  ="nbs.monitor.AgentMonitor"/>
+        <property name="repeatManager"           ref  ="nbs.scheduler.RepeatManager" />
+        <property name="jobStarter"              ref  ="nbs.scheduler.JobStarter"/>
+        <property name="peerClient"              ref  ="nbs.controller.ha.PeerClient" />
+        <property name="interval"                value="10000" />
+    </bean>
+    
+    <!-- ################################################################## -->
+    <!-- 배치 스케줄러 컴포넌트                                             -->
+    <!-- ################################################################## -->
+    <bean id="nbs.scheduler.JobInstanceManager"
+        class="nexcore.scheduler.core.internal.JobInstanceManager"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Job Instance 정보 관리]]></description>
+        <property name="sqlMapClient" ref="nbs.scheduler.SqlMapClient" />
+    </bean>
+
+<!--
+    <bean id="nbs.scheduler.JobInstanceIdMaker"
+        class="nexcore.scheduler.core.internal.DefaultJobInstanceIdMaker"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Job Instance Id 생성기]]></description>
+        <property name="sqlMapClient" ref="nbs.scheduler.SqlMapClient" />
+    </bean>
+-->
+    <bean id="nbs.scheduler.JobInstanceIdMaker"
+        class="nexcore.scheduler.core.internal.TableBaseJobInstanceIdMaker"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[테이블 방식 Job Instance Id 생성기]]></description>
+        <property name="sqlMapClient" ref="nbs.scheduler.SqlMapClientAnother" />
+    </bean>
+
+    <bean id="nbs.scheduler.JobInstanceIdMap"
+        class="nexcore.scheduler.core.internal.JobInstanceIdMap"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Job Instance Id 매핑관리]]></description>
+        <property name="jobInstanceManager" ref  ="nbs.scheduler.JobInstanceManager" />
+        <property name="cacheSize"          value="1000" />
+    </bean>
+
+    <bean id="nbs.scheduler.JobDefinitionManager"
+        class="nexcore.scheduler.core.internal.JobDefinitionManager"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Job Definition 정보 관리]]></description>
+        <property name="sqlMapClient" ref="nbs.scheduler.SqlMapClient" />
+    </bean>
+
+    <bean id="nbs.scheduler.JobDefinitionStgManager"
+        class="nexcore.scheduler.core.internal.JobDefinitionStgManager"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Job Definition Stg 정보 관리]]></description>
+        <property name="sqlMapClient" ref="nbs.scheduler.SqlMapClient" />
+    </bean>
+
+
+    <bean id="nbs.scheduler.ParallelRunningCounter"
+        class="nexcore.scheduler.core.internal.ParallelRunningCounter"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Parallel Job 유량제어 카운터]]></description>
+        <property name="sqlMapClient" ref="nbs.scheduler.SqlMapClient" />
+    </bean>
+
+    <bean id="nbs.scheduler.DayScheduler"
+        class="nexcore.scheduler.core.internal.DayScheduler"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[일자스케줄러]]></description>
+        <property name="scheduleCalendar"  ref="nbs.scheduler.ScheduleCalendar" />
+    </bean>
+
+    <bean id="nbs.scheduler.JobRunConditionChecker"
+        class="nexcore.scheduler.core.internal.JobRunConditionChecker"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[실행 조건 확인]]></description>
+        <property name="jobInstanceManager"      ref  ="nbs.scheduler.JobInstanceManager" />
+        <property name="jobExecutionManager"     ref  ="nbs.controller.JobExecutionManager"/>
+        <property name="parallelRunningCounter"  ref  ="nbs.scheduler.ParallelRunningCounter" />
+        <property name="parallelJobWaitingPool"  ref  ="nbs.scheduler.ParallelJobWaitingPool" />
+        <property name="preJobWaitingPool"       ref  ="nbs.scheduler.PreJobWaitingPool" />
+        <property name="repeatManager"           ref  ="nbs.scheduler.RepeatManager" />
+        <property name="agentMonitor"            ref  ="nbs.monitor.AgentMonitor"/>
+        <property name="doLogDecisionResult"     value="${scheduler.decision.check.log.${NEXCORE_ID}}"/>
+    </bean>
+
+    <bean id="nbs.scheduler.PreJobWaitingPool"
+        class="nexcore.scheduler.core.internal.PreJobWaitingPool"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[선행 Job 대기 Pool]]></description>
+    </bean>
+
+    <bean id="nbs.scheduler.ParallelJobWaitingPool"
+        class="nexcore.scheduler.core.internal.ParallelJobWaitingPool"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[병렬 처리 제한 대기 Pool]]></description>
+    </bean>
+
+    <bean id="nbs.scheduler.JobStarter"
+        class="nexcore.scheduler.core.internal.JobStarter"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Job starter]]></description>
+        <property name="jobInstanceManager"      ref  ="nbs.scheduler.JobInstanceManager" />
+        <property name="controllerMain"          ref  ="nbs.controller.ControllerMain"/>
+        <property name="jobRunConditionChecker"  ref  ="nbs.scheduler.JobRunConditionChecker" />
+        <property name="parallelRunningCounter"  ref  ="nbs.scheduler.ParallelRunningCounter" />
+        <property name="runQueueThreadCount"     value="5" />
+    </bean>
+
+    <bean id="nbs.scheduler.JobRunResultProcessor"
+        class="nexcore.scheduler.core.internal.JobRunResultProcessor"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Job starter]]></description>
+        <property name="jobInstanceManager"       ref  ="nbs.scheduler.JobInstanceManager" />
+        <property name="jobExecutionManager"      ref  ="nbs.controller.JobExecutionManager"/>
+        <property name="preJobWaitingPool"        ref  ="nbs.scheduler.PreJobWaitingPool" />
+        <property name="parallelJobWaitingPool"   ref  ="nbs.scheduler.ParallelJobWaitingPool" />
+        <property name="parallelRunningCounter"   ref  ="nbs.scheduler.ParallelRunningCounter" />
+        <property name="jobStarter"               ref  ="nbs.scheduler.JobStarter"/>
+        <property name="repeatManager"            ref  ="nbs.scheduler.RepeatManager" />
+        <property name="runningJobStateMonitor"   ref  ="nbs.controller.RunningJobStateMonitor"/>
+        <property name="activator"                ref  ="nbs.scheduler.Activator" />
+        <property name="jobNotifyManager"         ref  ="nbs.monitor.JobNotifyManager" />
+        <property name="jobEndPostProcessor"      ref  ="nbs.controller.JobEndPostProcessor" />
+        <property name="jobProgressStatusManager" ref  ="nbs.monitor.JobProgressStatusManager"/>
+        <property name="sqlMapClient"             ref  ="nbs.scheduler.SqlMapClient" />
+        <property name="peerClient"               ref  ="nbs.controller.ha.PeerClient" />
+    </bean>
+
+    <bean id="nbs.scheduler.RepeatManager"
+        class="nexcore.scheduler.core.internal.RepeatManager"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Repeat Timer]]></description>
+        <property name="jobInstanceManager"      ref  ="nbs.scheduler.JobInstanceManager" />
+        <property name="jobExecutionManager"     ref  ="nbs.controller.JobExecutionManager" />
+        <property name="jobStarter"              ref  ="nbs.scheduler.JobStarter"/>
+    </bean>
+    
+    <bean id="nbs.scheduler.TimeScheduler"
+        class="nexcore.scheduler.core.internal.TimeScheduler"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[시간 스케줄러]]></description>
+        <property name="enable"                  value="${scheduler.timescheduler.enable.${NEXCORE_ID}}" />
+        <property name="jobInstanceManager"      ref  ="nbs.scheduler.JobInstanceManager" />
+        <property name="jobStarter"              ref  ="nbs.scheduler.JobStarter"/>
+        <property name="parallelJobWaitingPool"  ref  ="nbs.scheduler.ParallelJobWaitingPool" />
+        <property name="preJobWaitingPool"       ref  ="nbs.scheduler.PreJobWaitingPool" />
+        <property name="jobRunConditionChecker"  ref  ="nbs.scheduler.JobRunConditionChecker" />
+        <property name="dailyActivator"          ref  ="nbs.scheduler.DailyActivator" />
+        <property name="sqlMapClient"            ref  ="nbs.scheduler.SqlMapClient" />
+        <property name="peerClient"              ref  ="nbs.controller.ha.PeerClient" />
+    </bean>
+
+    <bean id="nbs.scheduler.Activator"
+        class="nexcore.scheduler.core.internal.Activator"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Activator]]></description>
+        <property name="jobDefinitionManager"    ref  ="nbs.scheduler.JobDefinitionManager" />
+        <property name="jobInstanceIdMaker"      ref  ="nbs.scheduler.JobInstanceIdMaker" />
+        <property name="jobInstanceManager"      ref  ="nbs.scheduler.JobInstanceManager" />
+        <property name="scheduleCalendar"        ref  ="nbs.scheduler.ScheduleCalendar" />
+    </bean>
+    
+    <bean id="nbs.scheduler.DailyActivator"
+        class="nexcore.scheduler.core.internal.DailyActivator"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[일별 Activator]]></description>
+        <property name="jobDefinitionManager"    ref  ="nbs.scheduler.JobDefinitionManager" />
+        <property name="dayScheduler"            ref  ="nbs.scheduler.DayScheduler" />
+        <property name="scheduleCalendar"        ref  ="nbs.scheduler.ScheduleCalendar" />
+        <property name="activator"               ref  ="nbs.scheduler.Activator" />
+        <property name="activationTime"          value="${scheduler.activation.time.${NEXCORE_ID}}" />
+        <property name="sqlMapClient"            ref  ="nbs.scheduler.SqlMapClient" />
+        <property name="enable"                  value="${scheduler.activation.enable.${NEXCORE_ID}}" />
+    </bean>
+
+    <bean id="nbs.controller.JettyStarter"
+        class="nexcore.scheduler.controller.http.JettyStarter"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Jetty Main]]></description>
+        <property name="contextPath"         value="/" />
+        <property name="httpEnable"          value="${scheduler.http.server.enable.${NEXCORE_ID}}" />
+        <property name="httpPort"            value="${scheduler.http.server.port.${NEXCORE_ID}}" />
+        <property name="httpsEnable"         value="${scheduler.https.server.enable.${NEXCORE_ID}}" />
+        <property name="httpsPort"           value="${scheduler.https.server.port.${NEXCORE_ID}}" />
+        <property name="httpsKeyStore"       value="${scheduler.https.server.keystore.${NEXCORE_ID}}" />
+        <property name="httpsTrustStore"     value="${scheduler.https.server.truststore.${NEXCORE_ID}}" />
+        <property name="httpsKeyPassword">
+            <bean class="nexcore.scheduler.util.PasswordPropertyGetter">
+                <property name="password" value="${scheduler.https.server.keypassword.${NEXCORE_ID}}"/>
+            </bean>
+        </property>
+        <property name="httpsTrustPassword">
+            <bean class="nexcore.scheduler.util.PasswordPropertyGetter">
+                <property name="password" value="${scheduler.https.server.trustpassword.${NEXCORE_ID}}"/>
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="nbs.scheduler.SystemMonitor"
+        class="nexcore.scheduler.core.internal.SystemMonitor"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[System Monitor]]></description>
+        <property name="interval"                value="${scheduler.system.monitor.interval.${NEXCORE_ID}}" />
+        <property name="peerClient"              ref  ="nbs.controller.ha.PeerClient" />
+        <property name="monitorTargets">
+            <list>
+                <ref bean="nbs.scheduler.JobStarter"/>
+                <ref bean="nbs.controller.RunningJobStateMonitor"/>
+                <ref bean="nbs.scheduler.ParallelJobWaitingPool" />
+                <ref bean="nbs.scheduler.PreJobWaitingPool" />
+                <ref bean="nbs.scheduler.RepeatManager" />
+                <ref bean="nbs.monitor.AgentMonitor" />
+                <ref bean="nbs.scheduler.DailyActivator" />
+                <ref bean="nbs.monitor.OldJobCleaner" />
+                <ref bean="nbs.controller.CustomConfig" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="nbs.monitor.ViewFilterManager"
+        class="nexcore.scheduler.monitor.internal.ViewFilterManager"
+        init-method="init" destroy-method="destroy">
+        <property name="sqlMapClient"        ref="nbs.scheduler.SqlMapClient" />
+    </bean>
+
+    <bean id="nbs.monitor.JobNotifyManager"
+        class="nexcore.scheduler.monitor.internal.JobNotifyManager"
+        init-method="init" destroy-method="destroy">
+        <property name="sqlMapClient"        ref="nbs.scheduler.SqlMapClient" />
+        <property name="notifyProcessors">
+            <list>
+                <ref bean="nbs.monitor.DefaultJobNotifyProcessor"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="nbs.monitor.DefaultJobNotifyProcessor"
+        class="nexcore.scheduler.monitor.internal.DefaultJobNotifyProcessor"
+        init-method="init" destroy-method="destroy">
+        <property name="enable"              value="${scheduler.jobnotify.enable.${NEXCORE_ID}}" />
+        <property name="sqlMapClient"        ref  ="nbs.scheduler.SqlMapClient" />
+        <property name="keepDaysForSendList" value="10" /> 
+    </bean>
+
+    <bean id="nbs.monitor.JobGroupManager"
+        class="nexcore.scheduler.monitor.internal.JobGroupManager"
+        init-method="init" destroy-method="destroy">
+        <property name="sqlMapClient"        ref="nbs.scheduler.SqlMapClient" />
+    </bean>
+
+    <!--bean id="nbs.monitor.UserManager"
+        class="nexcore.scheduler.monitor.internal.UserManagerAuthByFile"
+        init-method="init" destroy-method="destroy">
+        <property name="sqlMapClient"        ref="nbs.scheduler.SqlMapClient" />
+    </bean-->
+
+    <bean id="nbs.monitor.UserManager"
+        class="nexcore.scheduler.monitor.internal.UserManager"
+        init-method="init" destroy-method="destroy">
+        <property name="sqlMapClient"        ref="nbs.scheduler.SqlMapClient" />
+    </bean>
+
+    <bean id="nbs.monitor.OldJobCleaner"
+        class="nexcore.scheduler.monitor.internal.OldJobCleaner"
+        init-method="init" destroy-method="destroy">
+        <property name="sqlMapClient"        ref  ="nbs.scheduler.SqlMapClient" />
+        <property name="enable"              value="${scheduler.oldjobclean.enable.${NEXCORE_ID}}" />
+        <property name="keepPeriod"          value="${scheduler.oldjobclean.keep.${NEXCORE_ID}}" />
+        <property name="executionTime"       value="${scheduler.oldjobclean.time.${NEXCORE_ID}}" />
+    </bean>
+
+
+</beans>

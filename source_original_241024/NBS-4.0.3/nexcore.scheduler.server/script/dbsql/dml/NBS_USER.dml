@@ -1,0 +1,2 @@
+/* default : admin/nexcore */
+INSERT INTO NBS_USER ( USER_ID, USER_PASSWD, USER_NAME, USER_DESC, TEAM1, TEAM2, EMAIL, PHONE, IS_ADMIN, IS_OPERATOR, IS_ACTIVE, OPER_JOB_ID_EXP, CREATE_TIME, LAST_MODIFY_TIME ) VALUES ( 'admin', 'dXxjHjqnBRHjQ5CG93Izszgd1P9tTdQi4daUgNn7lNg=', '기본관리자', '설치시 기본 관리자', '아키텍처', '프레임워크', '', '', 'Y', 'Y', 'Y', '.*', '00000000000000000', '00000000000000000');

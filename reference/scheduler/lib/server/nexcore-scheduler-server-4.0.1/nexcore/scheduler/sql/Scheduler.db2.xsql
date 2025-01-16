@@ -1,0 +1,1029 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap
+    PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="nbs.scheduler">
+
+    <!-- ■■■■■■■■■■■ Job Instance ■■■■■■■■■■■■■-->
+    <resultMap id="JobInstance-ResultMap" class="nexcore.scheduler.entity.JobInstance">
+        <result property="procDate"          column="PROC_DATE"/>
+        <result property="baseDate"          column="BASE_DATE"/>
+        <result property="jobId"             column="JOB_ID"/>
+        <result property="jobGroupId"        column="JOB_GROUP_ID"/>
+        <result property="jobInstanceId"     column="JOB_INSTANCE_ID"/>
+        <result property="description"       column="JOB_DESC"/>
+        <result property="jobState"          column="JOB_STATE"/>
+        <result property="jobStateReason"    column="JOB_STATE_REASON"/>
+        <result property="lastJobExeId"      column="LAST_JOB_EXE_ID"/>
+        <result property="lockedBy"          column="LOCKED_BY"/>
+        <result property="timeFrom"          column="TIME_FROM"/>
+        <result property="timeUntil"         column="TIME_UNTIL"/>
+        <result property="repeatYN"          column="REPEAT_YN"/>
+        <result property="repeatIntval"      column="REPEAT_INTVAL"/>
+        <result property="repeatIntvalGb"    column="REPEAT_INTVAL_GB"/>
+        <result property="repeatIfError"     column="REPEAT_IF_ERROR"/>
+        <result property="repeatMaxOk"       column="REPEAT_MAX_OK"/>
+        <result property="repeatExactExp"    column="REPEAT_EXACT_EXP"/>
+        <result property="confirmNeedYN"     column="CONFIRM_NEED_YN"/>
+        <result property="confirmed"         column="CONFIRMED"/>
+        <result property="parallelGroup"     column="PARALLEL_GROUP"/>
+        <result property="jobType"           column="JOB_TYPE"/>
+        <result property="agentNode"         column="AGENT_NODE"/>
+        <result property="lastAgentNode"     column="LAST_AGENT_NODE"/>
+        <result property="componentName"     column="COMPONENT_NAME"/>
+        <result property="activationTime"    column="ACTIVATION_TIME"/>
+        <result property="activator"         column="ACTIVATOR"/>
+        <result property="runCount"          column="RUN_COUNT"/>
+        <result property="endOkCount"        column="END_OK_COUNT"/>
+        <result property="logLevel"          column="LOG_LEVEL"/>
+        <result property="lastStartTime"     column="LAST_START_TIME"/>
+        <result property="lastEndTime"       column="LAST_END_TIME"/>
+        <result property="lastModifyTime"    column="LAST_MODIFY_TIME"/>
+    </resultMap>
+
+    <resultMap id="JobInsParams-ResultMap" class="hmap">
+        <result property="JOB_INSTANCE_ID"   column="JOB_INSTANCE_ID"/>
+        <result property="DATA_XML"          column="DATA_XML"  jdbcType="CLOB" javaType="java.lang.String"/>
+    </resultMap>
+
+    <select id="selectJobInstance" parameterClass="string" resultMap="JobInstance-ResultMap" >/* selectJobInstance */
+        SELECT *
+          FROM NBS_JOB_INS
+         WHERE JOB_INSTANCE_ID=#jobInstanceId#
+    </select>
+    <select id="selectJobInsPreJobConditions" parameterClass="string" resultClass="hmap">/* selectJobInsPreJobConditions */
+        SELECT JOB_INSTANCE_ID, SEQ, PRE_JOB_ID, OK_FAIL, AND_OR
+          FROM NBS_JOB_INS_PREJOB
+         WHERE JOB_INSTANCE_ID=#jobInstanceId#
+         ORDER BY SEQ
+    </select>
+    <select id="selectJobInsPostJobTriggers" parameterClass="string" resultClass="hmap">/* selectJobInsPostJobTriggers */
+        SELECT JOB_INSTANCE_ID, SEQ, WHEN, CHECK_VALUE1, CHECK_VALUE2, CHECK_VALUE3, TRIGGER_JOB_ID, INSTANCE_COUNT
+          FROM NBS_JOB_INS_TRIGGER
+         WHERE JOB_INSTANCE_ID=#jobInstanceId#
+         ORDER BY SEQ
+    </select>
+    <select id="selectJobInsParams" parameterClass="string" resultMap="JobInsParams-ResultMap">/* selectJobInsParams */
+        SELECT JOB_INSTANCE_ID, DATA_XML
+          FROM NBS_JOB_INS_OBJ_STORE
+         WHERE JOB_INSTANCE_ID=#jobInstanceId#
+           AND DATA_TYPE = 'P'
+    </select>
+
+    <select id="selectJobInstancesByQuery" parameterClass="map" resultMap="JobInstance-ResultMap" >/* selectJobInstancesByQuery */
+        SELECT *
+          FROM NBS_JOB_INS
+          $queryCondition$
+          $orderBy$
+    </select>
+
+    <sql id="selectJobInstancesByDynamicQueryFragment">
+      <dynamic prepend="WHERE">
+        <isGreaterThan prepend="AND" property="viewFilterId" compareValue="-1">
+           JOB_ID IN (SELECT JOB_ID FROM NBS_VIEW_FILTER_DTL WHERE VF_ID=#viewFilterId#)
+        </isGreaterThan>
+        <isNotEmpty prepend="AND" property="jobInstanceIdLike">
+           JOB_INSTANCE_ID LIKE #jobInstanceIdLike#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="jobGroupIdLike">
+           JOB_GROUP_ID LIKE #jobGroupIdLike#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="jobGroupNameLike">
+           JOB_GROUP_ID in (SELECT GROUP_ID FROM NBS_JOBGROUP WHERE GROUP_NAME LIKE #jobGroupNameLike#)
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="jobId">
+           JOB_ID = #jobId#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="componentNameLike">
+           COMPONENT_NAME LIKE #componentNameLike#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="jobDescLike">
+           JOB_DESC LIKE #jobDescLike#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="jobType">
+           JOB_TYPE LIKE #jobType#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="preJobIdLike">
+           JOB_ID IN (SELECT JOB_ID FROM NBS_JOB_DEF_PREJOB WHERE PRE_JOB_ID LIKE #preJobIdLike#)
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="triggerJobIdLike">
+           JOB_ID IN (SELECT JOB_ID FROM NBS_JOB_DEF_TRIGGER WHERE TRIGGER_JOB_ID LIKE #triggerJobIdLike#)
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="lastRetCode">
+          <isEqual property="lastRetCode" compareValue="0">
+           LAST_JOB_EXE_ID IS NOT NULL AND EXISTS (SELECT 1 FROM NBS_JOB_EXE a WHERE LAST_JOB_EXE_ID = a.JOB_EXECUTION_ID AND a.RETURN_CODE=0)
+          </isEqual>
+          <isEqual property="lastRetCode" compareValue="1">
+           LAST_JOB_EXE_ID IS NOT NULL AND EXISTS (SELECT 1 FROM NBS_JOB_EXE a WHERE LAST_JOB_EXE_ID = a.JOB_EXECUTION_ID AND a.RETURN_CODE &lt;&gt; 0)
+          </isEqual>
+          <isEqual property="lastRetCode" compareValue="-1">
+           LAST_JOB_EXE_ID IS NULL
+          </isEqual>
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="agentId">
+           AGENT_NODE LIKE #agentId#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="jobState">
+           JOB_STATE = #jobState#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="ownerLike">
+           JOB_ID IN (SELECT JOB_ID FROM NBS_JOB_DEF WHERE OWNER like #ownerLike# )
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="procDate">
+           PROC_DATE like #procDate#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="procDateFrom">
+           PROC_DATE BETWEEN #procDateFrom# AND #procDateTo#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="activationTimeFrom">
+           ACTIVATION_TIME BETWEEN #activationTimeFrom# AND #activationTimeTo#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="lastModifyTimeFrom">
+           LAST_MODIFY_TIME > #lastModifyTimeFrom# 
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="authorizedJobGroupIdViewList">
+		   <iterate property="authorizedJobGroupIdViewList" open="JOB_GROUP_ID in (" close=")" conjunction=",">#authorizedJobGroupIdViewList[]#</iterate>
+        </isNotEmpty>
+      </dynamic>
+    </sql>
+
+    <select id="selectJobInstancesByDynamicQuery" parameterClass="map" resultMap="JobInstance-ResultMap" >/* selectJobInstancesByDynamicQuery */
+        SELECT *
+          FROM NBS_JOB_INS
+  	    <include refid="selectJobInstancesByDynamicQueryFragment"/>
+          $orderBy$
+    </select>
+
+    <select id="selectJobInstanceCountByDynamicQuery" parameterClass="map" resultClass="int" >/* selectJobInstanceCountByDynamicQuery */
+        SELECT COUNT(*) CNT
+          FROM NBS_JOB_INS
+  	    <include refid="selectJobInstancesByDynamicQueryFragment"/>
+    </select>
+
+    <select id="getJobInstanceGroupId" parameterClass="string" resultClass="string" >/* getJobInstanceGroupId */
+        SELECT JOB_GROUP_ID
+          FROM NBS_JOB_INS
+         WHERE JOB_INSTANCE_ID = #jobInsId#
+    </select>
+
+    <select id="selectJobInstancesFreeColumnByDynamicQuery" parameterClass="map" resultClass="hmap" remapResults="true">/* selectJobInstancesFreeColumnByDynamicQuery */
+        SELECT $columnList$
+          FROM NBS_JOB_INS
+  	    <include refid="selectJobInstancesByDynamicQueryFragment"/>
+          $orderBy$
+    </select>
+
+    <!-- PreJobConditions -->
+    <select id="selectJobInsPreJobConditionsByQuery" parameterClass="map" resultClass="hmap">/* selectJobInsPreJobConditionsByQuery */
+        SELECT JOB_INSTANCE_ID, SEQ, PRE_JOB_ID, OK_FAIL, AND_OR
+          FROM NBS_JOB_INS_PREJOB
+         WHERE JOB_INSTANCE_ID in (SELECT JOB_INSTANCE_ID FROM NBS_JOB_INS $queryCondition$)
+         ORDER BY JOB_INSTANCE_ID, SEQ
+    </select>
+
+    <select id="selectJobInsPreJobConditionsByJobInsIdList" parameterClass="map" resultClass="hmap">/* selectJobInsPreJobConditionsByJobInsIdList */
+        SELECT JOB_INSTANCE_ID, SEQ, PRE_JOB_ID, OK_FAIL, AND_OR
+          FROM NBS_JOB_INS_PREJOB
+         WHERE 
+        <dynamic>
+            <iterate property="jobInstanceIdList" open="JOB_INSTANCE_ID in (" close=")" conjunction=",">#jobInstanceIdList[]#</iterate>
+        </dynamic>
+         ORDER BY JOB_INSTANCE_ID, SEQ
+    </select>
+    <!-- PreJobConditions end -->
+
+    <!-- PostJobTriggers -->
+    <select id="selectJobInsPostJobTriggersByQuery" parameterClass="map" resultClass="hmap">/* selectJobInsPostJobTriggersByQuery */
+        SELECT JOB_INSTANCE_ID, SEQ, WHEN, CHECK_VALUE1, CHECK_VALUE2, CHECK_VALUE3, TRIGGER_JOB_ID, INSTANCE_COUNT
+          FROM NBS_JOB_INS_TRIGGER
+         WHERE JOB_INSTANCE_ID in (SELECT JOB_INSTANCE_ID FROM NBS_JOB_INS $queryCondition$)
+         ORDER BY JOB_INSTANCE_ID, SEQ
+    </select>
+
+    <select id="selectJobInsPostJobTriggersByJobInsIdList" parameterClass="map" resultClass="hmap">/* selectJobInsPostJobTriggersByJobInsIdList */
+        SELECT JOB_INSTANCE_ID, SEQ, WHEN, CHECK_VALUE1, CHECK_VALUE2, CHECK_VALUE3, TRIGGER_JOB_ID, INSTANCE_COUNT
+          FROM NBS_JOB_INS_TRIGGER
+         WHERE 
+        <dynamic>
+            <iterate property="jobInstanceIdList" open="JOB_INSTANCE_ID in (" close=")" conjunction=",">#jobInstanceIdList[]#</iterate>
+        </dynamic>
+         ORDER BY JOB_INSTANCE_ID, SEQ
+    </select>
+    <!-- PostJobTriggers end -->
+
+    <!-- Parameters -->
+    <select id="selectJobInsParamsByQuery" parameterClass="map" resultMap="JobInsParams-ResultMap">/* selectJobInsParamsByQuery */
+        SELECT JOB_INSTANCE_ID, DATA_XML
+          FROM NBS_JOB_INS_OBJ_STORE
+         WHERE JOB_INSTANCE_ID in (SELECT JOB_INSTANCE_ID FROM NBS_JOB_INS $queryCondition$)
+           AND DATA_TYPE = 'P'
+         ORDER BY JOB_INSTANCE_ID
+    </select>
+
+    <select id="selectJobInsParamsByJobInsIdList" parameterClass="map" resultMap="JobInsParams-ResultMap">/* selectJobInsParamsByJobInsIdList */
+        SELECT JOB_INSTANCE_ID, DATA_XML
+          FROM NBS_JOB_INS_OBJ_STORE
+         WHERE 
+        <dynamic>
+            <iterate property="jobInstanceIdList" open="JOB_INSTANCE_ID in (" close=")" conjunction=",">#jobInstanceIdList[]#</iterate>
+        </dynamic>
+           AND DATA_TYPE = 'P'
+         ORDER BY JOB_INSTANCE_ID
+    </select>
+
+    <!-- Parameters end -->
+
+    <select id="selectLastJobInstanceId" parameterClass="map" resultClass="string">/* selectLastJobInstanceId */
+        SELECT MAX(JOB_INSTANCE_ID) as JOB_INSTANCE_ID
+          FROM NBS_JOB_INS
+         WHERE JOB_INSTANCE_ID LIKE #jobId# || #procDate# || '%'
+    </select>
+
+    <select id="selectLastJobExeIdOfJobInstance" parameterClass="string" resultClass="string">/* selectLastJobExeIdOfJobInstance */
+        SELECT LAST_JOB_EXE_ID
+          FROM NBS_JOB_INS
+         WHERE JOB_INSTANCE_ID = #jobInstanceId#
+    </select>
+
+    <insert id="insertJobInstance" parameterClass="nexcore.scheduler.entity.JobInstance">/* insertJobInstance */
+        INSERT INTO NBS_JOB_INS
+               (PROC_DATE, BASE_DATE, JOB_ID, JOB_GROUP_ID, JOB_INSTANCE_ID, JOB_DESC, JOB_STATE, LOCKED_BY,
+               TIME_FROM, TIME_UNTIL, REPEAT_YN, REPEAT_INTVAL, REPEAT_INTVAL_GB, REPEAT_IF_ERROR, REPEAT_MAX_OK, REPEAT_EXACT_EXP,
+               CONFIRM_NEED_YN, PARALLEL_GROUP, JOB_TYPE, AGENT_NODE, COMPONENT_NAME, ACTIVATION_TIME, ACTIVATOR, RUN_COUNT, END_OK_COUNT, LOG_LEVEL, LAST_MODIFY_TIME)
+        VALUES (#procDate#, #baseDate#, #jobId#, #jobGroupId#, #jobInstanceId#, #description:VARCHAR#, #jobState#, #lockedBy:VARCHAR#,
+                #timeFrom:VARCHAR#, #timeUntil:VARCHAR#, #repeatYN#, #repeatIntval#, #repeatIntvalGb:VARCHAR#, #repeatIfError:VARCHAR#, #repeatMaxOk#, #repeatExactExp:VARCHAR#,
+                #confirmNeedYN#, #parallelGroup:VARCHAR#, #jobType#, #agentNode#, #componentName:VARCHAR#, #activationTime:VARCHAR#, #activator:VARCHAR#, #runCount#, #endOkCount#, #logLevel:VARCHAR#, #lastModifyTime#)
+    </insert>
+    <insert id="insertJobInsPreJobList" parameterClass="map">/* insertJobInsPreJobList */
+        INSERT INTO NBS_JOB_INS_PREJOB
+               (JOB_INSTANCE_ID, SEQ, PRE_JOB_ID, OK_FAIL, AND_OR)
+        VALUES (#jobInstanceId#, #seq#, #preJobId#, #okFail#, #andOr:VARCHAR#)
+    </insert>
+    <insert id="insertJobInsPostJobTrigger" parameterClass="map">/* insertJobInsPostJobTrigger */
+        INSERT INTO NBS_JOB_INS_TRIGGER
+               (JOB_INSTANCE_ID, SEQ, WHEN, CHECK_VALUE1, CHECK_VALUE2, CHECK_VALUE3, TRIGGER_JOB_ID, INSTANCE_COUNT)
+        VALUES (#jobInstanceId#, #seq#, #when#, #checkValue1:VARCHAR#, #checkValue2:VARCHAR#, #checkValue3:VARCHAR#, #triggerJobId:VARCHAR#, #instanceCount#)
+    </insert>
+    <insert id="insertJobInsParam" parameterClass="map">/* insertJobInsParam */
+        INSERT INTO NBS_JOB_INS_OBJ_STORE
+               (JOB_INSTANCE_ID, DATA_TYPE, DATA_XML)
+        VALUES (#jobInstanceId#, 'P', #xml:clob#)
+    </insert>
+
+    <update id="updateJobStateForStart" parameterClass="map">/* updateJobStateForStart */
+        UPDATE NBS_JOB_INS
+           SET JOB_STATE        = #jobState#,
+               JOB_STATE_REASON = '',
+               LAST_JOB_EXE_ID  = '-',
+               RUN_COUNT        = RUN_COUNT + 1,
+               LAST_START_TIME  = #lastStartTime:VARCHAR#,
+               LAST_END_TIME    = '',
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE JOB_INSTANCE_ID  = #jobInstanceId#
+           AND JOB_STATE        = #beforeJobState#
+           AND LAST_MODIFY_TIME = #oldLastModifyTime#
+        <isNotEmpty property="parallelGroup"><![CDATA[
+           AND (SELECT COUNT(*) RUNNING
+                  FROM NBS_JOB_INS
+                 WHERE PARALLEL_GROUP=#parallelGroup:VARCHAR#
+                   AND JOB_STATE IN ('R', 'P')) < #parallelGroupMax#]]>
+        </isNotEmpty>
+    </update>
+
+    <update id="updateJobStateForEnd" parameterClass="map">/* updateJobStateForEnd */
+        UPDATE NBS_JOB_INS
+           SET JOB_STATE        = #jobState#,
+               JOB_STATE_REASON = #jobStateReason:VARCHAR#,
+        <isNotEmpty property="lastEndTime">
+               LAST_END_TIME    = #lastEndTime:VARCHAR#,
+               END_OK_COUNT     = END_OK_COUNT + (case CAST ( #jobState# AS VARCHAR(1)) when 'O' then 1 when 'F' then 0 else 0 end),
+        </isNotEmpty>
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE JOB_INSTANCE_ID  = #jobInstanceId#
+        <isNotEmpty property="beforeJobState">
+           AND JOB_STATE        = #beforeJobState#
+        </isNotEmpty>
+        <isNotEmpty property="lastJobExeId">
+           AND LAST_JOB_EXE_ID  = #lastJobExeId#
+        </isNotEmpty>
+    </update>
+
+    <update id="updateLastJobExeId" parameterClass="map">/* updateLastJobExeId */
+        UPDATE NBS_JOB_INS
+           SET LAST_JOB_EXE_ID  = #lastJobExeId:VARCHAR#,
+               LAST_AGENT_NODE  = #lastAgentNode:VARCHAR#,
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE JOB_INSTANCE_ID  = #jobInstanceId#
+    </update>
+
+    <update id="updateJobState" parameterClass="map">/* updateJobState */
+        UPDATE NBS_JOB_INS
+           SET JOB_STATE        = #jobState#,
+               JOB_STATE_REASON = #jobStateReason:VARCHAR#,
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE JOB_INSTANCE_ID  = #jobInstanceId#
+           AND (JOB_STATE != #jobState#  OR  JOB_STATE_REASON != #jobStateReason#)
+    </update>
+
+    <update id="updateJobStateWithCheck" parameterClass="map">/* updateJobStateWithCheck */
+        UPDATE NBS_JOB_INS
+           SET JOB_STATE        = #jobState#,
+               JOB_STATE_REASON = #jobStateReason:VARCHAR#,
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE JOB_INSTANCE_ID  = #jobInstanceId#
+           AND JOB_STATE        = #beforeJobState#
+    </update>
+
+    <update id="updateJobLastModifyTime" parameterClass="map">/* updateJobLastModifyTime */
+        UPDATE NBS_JOB_INS
+           SET LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE JOB_INSTANCE_ID  = #jobInstanceId#
+    </update>
+
+    <update id="updateJobInstanceLockedBy" parameterClass="nexcore.scheduler.entity.JobInstance">/* updateJobInstanceLockedBy */
+        UPDATE NBS_JOB_INS
+           SET LOCKED_BY        = #lockedBy:VARCHAR#,
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE JOB_INSTANCE_ID  = #jobInstanceId#
+    </update>
+    <update id="updateJobInstanceConfirmed" parameterClass="nexcore.scheduler.entity.JobInstance">/* updateJobInstanceConfirmed */
+        UPDATE NBS_JOB_INS
+           SET CONFIRMED        = #confirmed:VARCHAR#,
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE JOB_INSTANCE_ID  = #jobInstanceId#
+    </update>
+    <update id="updateJobInstanceLogLevel" parameterClass="map">/* updateJobInstanceLogLevel */
+        UPDATE NBS_JOB_INS
+           SET LOG_LEVEL        = #logLevel:VARCHAR#
+         WHERE JOB_INSTANCE_ID  = #jobInstanceId#
+    </update>
+
+    <!-- for modify  -->
+    <update id="updateJobInstance" parameterClass="nexcore.scheduler.entity.JobInstance">/* updateJobInstance */
+        UPDATE NBS_JOB_INS
+           SET TIME_FROM        = #timeFrom:VARCHAR#,
+               TIME_UNTIL       = #timeUntil:VARCHAR#,
+               REPEAT_YN        = #repeatYN#,
+               REPEAT_INTVAL    = #repeatIntval#,
+               REPEAT_INTVAL_GB = #repeatIntvalGb:VARCHAR#,
+               REPEAT_IF_ERROR  = #repeatIfError:VARCHAR#,
+               REPEAT_MAX_OK    = #repeatMaxOk#,
+               REPEAT_EXACT_EXP = #repeatExactExp:VARCHAR#,
+               CONFIRM_NEED_YN  = #confirmNeedYN#,
+               PARALLEL_GROUP   = #parallelGroup:VARCHAR#,
+               AGENT_NODE       = #agentNode#,
+               JOB_TYPE         = #jobType#,
+               JOB_DESC         = #description:VARCHAR#,
+               JOB_GROUP_ID     = #jobGroupId:VARCHAR#,
+               COMPONENT_NAME   = #componentName:VARCHAR#,
+               LOG_LEVEL        = #logLevel:VARCHAR#,
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE JOB_INSTANCE_ID  = #jobInstanceId#
+    </update>
+    
+    <update id="updateJobInstanceAgentId" parameterClass="map">/* updateJobInstanceAgentId */
+        UPDATE NBS_JOB_INS
+           SET AGENT_NODE       = #newAgentId#,
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE JOB_INSTANCE_ID  = #jobInstanceId#
+           AND JOB_STATE not in ('R', 'P')
+    </update>
+    
+    <delete id="deleteJobInsPreJobList" parameterClass="string">/* deleteJobInsPreJobList */
+        DELETE FROM NBS_JOB_INS_PREJOB WHERE JOB_INSTANCE_ID=#jobInstanceId#
+    </delete>
+    <delete id="deleteJobInsPostJobTrigger" parameterClass="string">/* deleteJobInsPostJobTrigger */
+        DELETE FROM NBS_JOB_INS_TRIGGER WHERE JOB_INSTANCE_ID=#jobInstanceId#
+    </delete>
+    <delete id="deleteJobInsParam" parameterClass="string">/* deleteJobInsParam */
+        DELETE FROM NBS_JOB_INS_OBJ_STORE  WHERE JOB_INSTANCE_ID=#jobInstanceId# AND DATA_TYPE='P'
+    </delete>
+
+    <!-- ■■■■■■■■■■■ Job Instance ■■■■■■■■■■■■■-->
+
+
+
+    <!-- ■■■■■■■■■■■ Job Definition ■■■■■■■■■■■■■-->
+    <resultMap id="JobDefinition-ResultMap" class="nexcore.scheduler.entity.JobDefinition">
+        <result property="jobId"                    column="JOB_ID"/>
+        <result property="jobGroupId"               column="JOB_GROUP_ID"/>
+        <result property="owner"                    column="OWNER"/>
+        <result property="description"              column="JOB_DESC"/>
+        <result property="timeFrom"                 column="TIME_FROM"/>
+        <result property="timeUntil"                column="TIME_UNTIL"/>
+        <result property="repeatYN"                 column="REPEAT_YN"/>
+        <result property="repeatIntval"             column="REPEAT_INTVAL"/>
+        <result property="repeatIntvalGb"           column="REPEAT_INTVAL_GB"/>
+        <result property="repeatIfError"            column="REPEAT_IF_ERROR"/>
+        <result property="repeatMaxOk"              column="REPEAT_MAX_OK"/>
+        <result property="repeatExactExp"           column="REPEAT_EXACT_EXP"/>
+        <result property="confirmNeedYN"            column="CONFIRM_NEED_YN"/>
+        <result property="parallelGroup"            column="PARALLEL_GROUP"/>
+        <result property="jobType"                  column="JOB_TYPE"/>
+        <result property="agentNode"                column="AGENT_NODE"/>
+        <result property="componentName"            column="COMPONENT_NAME"/>
+        <result property="scheduleType"             column="SCHEDULE_TYPE"/>
+        <result property="daysInMonth"              column="DAYS_IN_MONTH"/>
+        <result property="months"                   column="MONTHS"/>
+        <result property="daysOfWeek"               column="DAYS_OF_WEEK"/>
+        <result property="weekdayMonthdayType"      column="WEEKDAY_MONTHDAY_TYPE"/>
+        <result property="calendarId"               column="CALENDAR_ID"/>
+        <result property="calendarExps"             column="CALENDAR_EXP"/>
+        <result property="dayOfMonthScheduleType"   column="DAY_SCHEDULE_TYPE"/>
+        <result property="beforeAfterExp"           column="BEFORE_AFTER_EXP"/>
+        <result property="shiftExp"                 column="SHIFT_EXP"/>
+        <result property="shiftExp2"                column="SHIFT_EXP2"/>
+        <result property="fixedDays"                column="FIXED_DAYS"/>
+        <result property="extraSchedule"            column="EXTRA_SCHEDULE"/>
+        <result property="baseDateCalId"            column="BASE_DATE_CAL_ID"/>
+        <result property="baseDateLogic"            column="BASE_DATE_LOGIC"/>
+        <result property="logLevel"                 column="LOG_LEVEL"/>
+        <result property="createTime"               column="CREATE_TIME"/>
+        <result property="lastModifyTime"           column="LAST_MODIFY_TIME"/>
+    </resultMap>
+
+    <select id="selectJobDefinitionsByQuery" parameterClass="string" resultMap="JobDefinition-ResultMap" >/* selectJobDefinitionsByQuery */
+        SELECT *
+          FROM NBS_JOB_DEF
+          $queryCondition$
+    </select>
+    
+    <select id="selectJobDefinitionsCount" resultClass="int" >/* selectJobDefinitionsCount */
+        SELECT COUNT(*) CNT
+          FROM NBS_JOB_DEF
+    </select>
+
+	<sql id="selectJobDefinitionsByDynamicQueryFragment">
+      <dynamic prepend="WHERE">
+        <isGreaterThan prepend="AND" property="viewFilterId" compareValue="-1">
+           JOB_ID IN (SELECT JOB_ID FROM NBS_VIEW_FILTER_DTL WHERE VF_ID=#viewFilterId#)
+        </isGreaterThan>
+        <isNotEmpty prepend="AND" property="jobIdLike">
+           JOB_ID LIKE #jobIdLike#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="jobGroupIdLike">
+           JOB_GROUP_ID LIKE #jobGroupIdLike#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="jobGroupNameLike">
+           JOB_GROUP_ID in (SELECT GROUP_ID FROM NBS_JOBGROUP WHERE GROUP_NAME LIKE #jobGroupNameLike#)
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="componentNameLike">
+           COMPONENT_NAME LIKE #componentNameLike#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="jobDescLike">
+           JOB_DESC LIKE #jobDescLike#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="jobType">
+           JOB_TYPE LIKE #jobType#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="preJobIdLike">
+           JOB_ID IN (SELECT JOB_ID FROM NBS_JOB_DEF_PREJOB WHERE PRE_JOB_ID LIKE #preJobIdLike#)
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="triggerJobIdLike">
+           JOB_ID IN (SELECT JOB_ID FROM NBS_JOB_DEF_TRIGGER WHERE TRIGGER_JOB_ID LIKE #triggerJobIdLike#)
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="agentId">
+           AGENT_NODE LIKE #agentId#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="ownerLike">
+           JOB_ID IN (SELECT JOB_ID FROM NBS_JOB_DEF WHERE OWNER like #ownerLike# )
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="authorizedJobGroupIdViewList">
+		   <iterate property="authorizedJobGroupIdViewList" open="JOB_GROUP_ID in (" close=")" conjunction=",">#authorizedJobGroupIdViewList[]#</iterate>
+        </isNotEmpty>
+      </dynamic>
+	</sql>
+	
+    <select id="selectJobDefinitionsByDynamicQuery" parameterClass="map" resultMap="JobDefinition-ResultMap" >/* selectJobDefinitionsByDynamicQuery */
+        SELECT *
+          FROM NBS_JOB_DEF
+		<include refid="selectJobDefinitionsByDynamicQueryFragment"/>
+    </select>
+
+    <select id="selectJobDefinitionsFreeColumnByDynamicQuery" parameterClass="map" resultClass="hmap" remapResults="true">/* selectJobDefinitionsFreeColumnByDynamicQuery */
+        SELECT $columnList$
+          FROM NBS_JOB_DEF
+		<include refid="selectJobDefinitionsByDynamicQueryFragment"/>
+		$orderBy$
+    </select>
+
+    <select id="selectJobDefinitionByJobId" parameterClass="string" resultMap="JobDefinition-ResultMap" >/* selectJobDefinitionByJobId */
+        SELECT *
+          FROM NBS_JOB_DEF
+         WHERE JOB_ID = #jobId#
+    </select>
+
+    <select id="getJobDefinitionGroupId" parameterClass="string" resultClass="string" >/* getJobDefinitionGroupId */
+        SELECT JOB_GROUP_ID
+          FROM NBS_JOB_DEF
+         WHERE JOB_ID = #jobId#
+    </select>
+
+    <select id="selectJobDefPreJobConditionsByQuery" parameterClass="string" resultClass="hmap">/* selectJobDefPreJobConditionsByQuery */
+        SELECT JOB_ID, SEQ, PRE_JOB_ID, OK_FAIL, AND_OR
+          FROM NBS_JOB_DEF_PREJOB
+         WHERE JOB_ID in (SELECT JOB_ID FROM NBS_JOB_DEF $queryCondition$)
+         ORDER BY JOB_ID, SEQ
+    </select>
+    
+    <select id="selectJobDefPreJobConditionsByJobId" parameterClass="string" resultClass="hmap">/* selectJobDefPreJobConditionsByJobId */
+        SELECT JOB_ID, SEQ, PRE_JOB_ID, OK_FAIL, AND_OR
+          FROM NBS_JOB_DEF_PREJOB
+         WHERE JOB_ID = #jobId#
+         ORDER BY SEQ
+    </select>
+
+    <select id="selectJobDefPreJobConditionsByDynamicQuery" parameterClass="map" resultClass="hmap">/* selectJobDefPreJobConditionsByDynamicQuery */
+        SELECT JOB_ID, SEQ, PRE_JOB_ID, OK_FAIL, AND_OR
+          FROM NBS_JOB_DEF_PREJOB
+         WHERE JOB_ID in (SELECT JOB_ID FROM NBS_JOB_DEF <include refid="selectJobDefinitionsByDynamicQueryFragment"/>)
+         ORDER BY JOB_ID, SEQ
+    </select>
+
+    <select id="selectJobDefPostJobTriggersByQuery" parameterClass="string" resultClass="hmap">/* selectJobDefPostJobTriggersByQuery */
+        SELECT JOB_ID, SEQ, WHEN, CHECK_VALUE1, CHECK_VALUE2, CHECK_VALUE3, TRIGGER_JOB_ID, INSTANCE_COUNT
+          FROM NBS_JOB_DEF_TRIGGER
+         WHERE JOB_ID in (SELECT JOB_ID FROM NBS_JOB_DEF $queryCondition$)
+         ORDER BY JOB_ID, SEQ
+    </select>
+
+    <select id="selectJobDefPostJobTriggersByJobId" parameterClass="string" resultClass="hmap">/* selectJobDefPostJobTriggersByJobId */
+        SELECT JOB_ID, SEQ, WHEN, CHECK_VALUE1, CHECK_VALUE2, CHECK_VALUE3, TRIGGER_JOB_ID, INSTANCE_COUNT
+          FROM NBS_JOB_DEF_TRIGGER
+         WHERE JOB_ID = #jobId#
+         ORDER BY SEQ
+    </select>
+    
+    <select id="selectJobDefPostJobTriggersByDynamicQuery" parameterClass="map" resultClass="hmap">/* selectJobDefPostJobTriggersByDynamicQuery */
+        SELECT JOB_ID, SEQ, WHEN, CHECK_VALUE1, CHECK_VALUE2, CHECK_VALUE3, TRIGGER_JOB_ID, INSTANCE_COUNT
+          FROM NBS_JOB_DEF_TRIGGER
+         WHERE JOB_ID in (SELECT JOB_ID FROM NBS_JOB_DEF <include refid="selectJobDefinitionsByDynamicQueryFragment"/>)
+         ORDER BY JOB_ID, SEQ
+    </select>
+
+    <select id="selectJobDefParamsByQuery" parameterClass="string" resultClass="hmap">/* selectJobDefParamsByQuery */
+        SELECT JOB_ID, SEQ, PARAM_NAME, PARAM_VALUE
+          FROM NBS_JOB_DEF_PARAM
+         WHERE JOB_ID in (SELECT JOB_ID FROM NBS_JOB_DEF $queryCondition$)
+         ORDER BY JOB_ID, SEQ
+    </select>
+
+    <select id="selectJobDefParamsByJobId" parameterClass="string" resultClass="hmap">/* selectJobDefParamsByJobId */
+        SELECT JOB_ID, SEQ, PARAM_NAME, PARAM_VALUE
+          FROM NBS_JOB_DEF_PARAM
+         WHERE JOB_ID = #jobId#
+         ORDER BY SEQ
+    </select>
+
+    <select id="selectJobDefParamsByDynamicQuery" parameterClass="map" resultClass="hmap">/* selectJobDefParamsByDynamicQuery */
+        SELECT JOB_ID, SEQ, PARAM_NAME, PARAM_VALUE
+          FROM NBS_JOB_DEF_PARAM
+         WHERE JOB_ID in (SELECT JOB_ID FROM NBS_JOB_DEF <include refid="selectJobDefinitionsByDynamicQueryFragment"/>)
+         ORDER BY JOB_ID, SEQ
+    </select>
+
+    <insert id="insertJobDefinition" parameterClass="nexcore.scheduler.entity.JobDefinition">/* insertJobDefinition */
+        INSERT INTO NBS_JOB_DEF
+               (JOB_ID, JOB_GROUP_ID, OWNER, JOB_DESC, TIME_FROM, TIME_UNTIL,
+                REPEAT_YN, REPEAT_INTVAL, REPEAT_INTVAL_GB, REPEAT_IF_ERROR, REPEAT_MAX_OK, REPEAT_EXACT_EXP, CONFIRM_NEED_YN, PARALLEL_GROUP,
+                JOB_TYPE, AGENT_NODE, COMPONENT_NAME, 
+                SCHEDULE_TYPE, DAYS_IN_MONTH, MONTHS, DAYS_OF_WEEK, WEEKDAY_MONTHDAY_TYPE, CALENDAR_ID, CALENDAR_EXP,
+                DAY_SCHEDULE_TYPE, BEFORE_AFTER_EXP, SHIFT_EXP, SHIFT_EXP2, FIXED_DAYS, EXTRA_SCHEDULE, BASE_DATE_CAL_ID, BASE_DATE_LOGIC, LOG_LEVEL, CREATE_TIME, LAST_MODIFY_TIME)
+        VALUES (#jobId#,#jobGroupId#,#owner#,#description:VARCHAR#,#timeFrom:VARCHAR#,#timeUntil:VARCHAR#,
+                #repeatYN#,#repeatIntval#,#repeatIntvalGb:VARCHAR#,#repeatIfError:VARCHAR#,#repeatMaxOk#,#repeatExactExp:VARCHAR#,#confirmNeedYN#,#parallelGroup:VARCHAR#,
+                #jobType#,#agentNode#,#componentName:VARCHAR#,
+                #scheduleType#,#daysInMonth:VARCHAR#,#months:VARCHAR#,#daysOfWeek:VARCHAR#,#weekdayMonthdayType:VARCHAR#,#calendarId:VARCHAR#,#calendarExps:VARCHAR#,
+                #dayOfMonthScheduleType:VARCHAR#,#beforeAfterExp:VARCHAR#,#shiftExp:VARCHAR#,#shiftExp2:VARCHAR#,#fixedDays:VARCHAR#,#extraSchedule:VARCHAR#,#baseDateCalId:VARCHAR#,#baseDateLogic:VARCHAR#,#logLevel:VARCHAR#,#createTime#,#lastModifyTime#)
+    </insert>
+    <insert id="insertJobDefPreJobList" parameterClass="map">/* insertJobDefPreJobList */
+        INSERT INTO NBS_JOB_DEF_PREJOB
+               (JOB_ID, SEQ, PRE_JOB_ID, OK_FAIL, AND_OR)
+        VALUES (#jobId#, #seq#, #preJobId#, #okFail#, #andOr:VARCHAR#)
+    </insert>
+    <insert id="insertJobDefPostJobTrigger" parameterClass="map">/* insertJobDefPostJobTrigger */
+        INSERT INTO NBS_JOB_DEF_TRIGGER
+               (JOB_ID, SEQ, WHEN, CHECK_VALUE1, CHECK_VALUE2, CHECK_VALUE3, TRIGGER_JOB_ID, INSTANCE_COUNT)
+        VALUES (#jobId#, #seq#, #when#, #checkValue1:VARCHAR#, #checkValue2:VARCHAR#, #checkValue3:VARCHAR#, #triggerJobId:VARCHAR#, #instanceCount#)
+    </insert>
+    <insert id="insertJobDefParam" parameterClass="map">/* insertJobDefParam */
+        INSERT INTO NBS_JOB_DEF_PARAM
+               (JOB_ID, SEQ, PARAM_NAME, PARAM_VALUE)
+        VALUES (#jobId#, #seq#, #paramName#, #paramValue:VARCHAR#)
+    </insert>
+    <update id="updateJobDefinition" parameterClass="nexcore.scheduler.entity.JobDefinition">/* updateJobDefinition */
+        UPDATE NBS_JOB_DEF
+           SET JOB_GROUP_ID           = #jobGroupId#,
+               OWNER                  = #owner#,
+               JOB_DESC               = #description:VARCHAR#,
+               TIME_FROM              = #timeFrom:VARCHAR#,
+               TIME_UNTIL             = #timeUntil:VARCHAR#,
+               REPEAT_YN              = #repeatYN#,
+               REPEAT_INTVAL          = #repeatIntval#,
+               REPEAT_INTVAL_GB       = #repeatIntvalGb:VARCHAR#,
+               REPEAT_IF_ERROR        = #repeatIfError:VARCHAR#,
+               REPEAT_MAX_OK          = #repeatMaxOk#,
+               REPEAT_EXACT_EXP       = #repeatExactExp:VARCHAR#,
+               CONFIRM_NEED_YN        = #confirmNeedYN#,
+               PARALLEL_GROUP         = #parallelGroup:VARCHAR#,
+               JOB_TYPE               = #jobType#,
+               AGENT_NODE             = #agentNode#,
+               COMPONENT_NAME         = #componentName:VARCHAR#,
+               SCHEDULE_TYPE          = #scheduleType#,
+               DAYS_IN_MONTH          = #daysInMonth:VARCHAR#,
+               MONTHS                 = #months:VARCHAR#,
+               DAYS_OF_WEEK           = #daysOfWeek:VARCHAR#,
+               WEEKDAY_MONTHDAY_TYPE  = #weekdayMonthdayType:VARCHAR#,
+               CALENDAR_ID            = #calendarId:VARCHAR#,
+               CALENDAR_EXP           = #calendarExps:VARCHAR#,
+               DAY_SCHEDULE_TYPE      = #dayOfMonthScheduleType:VARCHAR#,
+               BEFORE_AFTER_EXP       = #beforeAfterExp:VARCHAR#,
+               SHIFT_EXP              = #shiftExp:VARCHAR#,
+               SHIFT_EXP2             = #shiftExp2:VARCHAR#,
+               FIXED_DAYS             = #fixedDays:VARCHAR#,
+               EXTRA_SCHEDULE         = #extraSchedule:VARCHAR#,
+               BASE_DATE_CAL_ID       = #baseDateCalId:VARCHAR#,
+               BASE_DATE_LOGIC        = #baseDateLogic:VARCHAR#,
+               LOG_LEVEL              = #logLevel:VARCHAR#,
+               LAST_MODIFY_TIME       = #lastModifyTime#
+         WHERE JOB_ID = #jobId#
+    </update>
+    <update id="updateJobDefinitionLogLevel" parameterClass="map">/* updateJobDefinitionLogLevel */
+        UPDATE NBS_JOB_DEF
+           SET LOG_LEVEL        = #logLevel:VARCHAR#
+         WHERE JOB_ID = #jobId#
+    </update>
+
+    <delete id="deleteJobDefinition" parameterClass="string">/* deleteJobDefinition */
+        DELETE FROM NBS_JOB_DEF WHERE JOB_ID=#jobId#
+    </delete>
+    <delete id="deleteJobDefPreJobList" parameterClass="string">/* deleteJobDefPreJobList */
+        DELETE FROM NBS_JOB_DEF_PREJOB WHERE JOB_ID=#jobId#
+    </delete>
+    <delete id="deleteJobDefPostJobTrigger" parameterClass="string">/* deleteJobDefPostJobTrigger */
+        DELETE FROM NBS_JOB_DEF_TRIGGER WHERE JOB_ID=#jobId#
+    </delete>
+    <delete id="deleteJobDefParam" parameterClass="string">/* deleteJobDefParam */
+        DELETE FROM NBS_JOB_DEF_PARAM  WHERE JOB_ID=#jobId#
+    </delete>
+
+    <!-- query by jobid -->
+    <select id="selectJobDefinitionsByJobIdList" parameterClass="map" resultMap="JobDefinition-ResultMap" >/* selectJobDefinitionsByJobIdList */
+        SELECT *
+          FROM NBS_JOB_DEF
+         WHERE
+        <dynamic>
+            <iterate property="jobIdList" open="JOB_ID in (" close=")" conjunction=",">#jobIdList[]#</iterate>
+        </dynamic>
+    </select>
+    <select id="selectJobDefPreJobConditionsByJobIdList" parameterClass="map" resultClass="hmap">/* selectJobDefPreJobConditionsByJobIdList */
+        SELECT JOB_ID, SEQ, PRE_JOB_ID, OK_FAIL, AND_OR
+          FROM NBS_JOB_DEF_PREJOB
+        <dynamic prepend="WHERE">
+            <iterate property="jobIdList" open="JOB_ID in (" close=")" conjunction=",">#jobIdList[]#</iterate>
+        </dynamic>
+         ORDER BY JOB_ID, SEQ
+    </select>
+    <select id="selectJobDefPostJobTriggersByJobIdList" parameterClass="map" resultClass="hmap">/* selectJobDefPostJobTriggersByJobIdList */
+        SELECT JOB_ID, SEQ, WHEN, CHECK_VALUE1, CHECK_VALUE2, CHECK_VALUE3, TRIGGER_JOB_ID, INSTANCE_COUNT
+          FROM NBS_JOB_DEF_TRIGGER
+        <dynamic prepend="WHERE">
+            <iterate property="jobIdList" open="JOB_ID in (" close=")" conjunction=",">#jobIdList[]#</iterate>
+        </dynamic>
+         ORDER BY JOB_ID, SEQ
+    </select>
+    <select id="selectJobDefParamsByJobIdList" parameterClass="map" resultClass="hmap">/* selectJobDefParamsByJobIdList */
+        SELECT JOB_ID, SEQ, PARAM_NAME, PARAM_VALUE
+          FROM NBS_JOB_DEF_PARAM
+        <dynamic prepend="WHERE">
+            <iterate property="jobIdList" open="JOB_ID in (" close=")" conjunction=",">#jobIdList[]#</iterate>
+        </dynamic>
+         ORDER BY JOB_ID, SEQ
+    </select>
+
+    <!-- ■■■■■■■■■■■ Job Definition ■■■■■■■■■■■■■-->
+
+
+    <!-- ■■■■■■■■■■■ Parallel Group ■■■■■■■■■■■■■-->
+    <resultMap id="ParallelGroup-ResultMap" class="nexcore.scheduler.entity.ParallelGroup">
+        <result property="groupName"           column="GROUP_NAME"/>
+        <result property="groupDesc"           column="GROUP_DESC"/>
+        <result property="maxLimit"            column="MAX_LIMIT"/>
+        <result property="currentRunning"      column="CURRENT_RUNNING"/>
+    </resultMap>
+
+    <select id="selectParallelGroup" parameterClass="string" resultMap="ParallelGroup-ResultMap" >/* selectParallelGroup */
+        SELECT GROUP_NAME, GROUP_DESC, MAX_LIMIT,
+               (SELECT COUNT(*) RUNNING
+                  FROM NBS_JOB_INS
+                 WHERE PARALLEL_GROUP=GROUP_NAME
+                   AND JOB_STATE IN ('R', 'P')) CURRENT_RUNNING
+          FROM NBS_PARALLEL_GROUP
+         WHERE GROUP_NAME = #value#
+         ORDER BY GROUP_NAME
+    </select>
+
+    <select id="selectAllParallelGroup" parameterClass="string" resultMap="ParallelGroup-ResultMap" >/* selectAllParallelGroup */
+        SELECT GROUP_NAME, GROUP_DESC, MAX_LIMIT,
+               (SELECT COUNT(*) RUNNING
+                  FROM NBS_JOB_INS
+                 WHERE PARALLEL_GROUP=GROUP_NAME
+                   AND JOB_STATE IN ('R', 'P')) CURRENT_RUNNING
+          FROM NBS_PARALLEL_GROUP
+         ORDER BY GROUP_NAME
+    </select>
+
+    <select id="selectParallelGroupMaxWithLock" parameterClass="string" resultClass="int" >/* selectParallelGroupMaxWithLock */
+        SELECT MAX_LIMIT 
+          FROM NBS_PARALLEL_GROUP
+         WHERE GROUP_NAME = #value# 
+           FOR READ ONLY WITH RS USE AND KEEP EXCLUSIVE LOCKS
+    </select>
+
+    <insert id="insertParallelGroup" parameterClass="nexcore.scheduler.entity.ParallelGroup">/* insertParallelGroup */
+        INSERT INTO NBS_PARALLEL_GROUP
+               (GROUP_NAME, GROUP_DESC, MAX_LIMIT)
+        VALUES (#groupName#, #groupDesc:VARCHAR#, #maxLimit#)
+    </insert>
+
+    <update id="updateParallelGroup" parameterClass="nexcore.scheduler.entity.ParallelGroup">/* updateParallelGroup */
+        UPDATE NBS_PARALLEL_GROUP
+           SET MAX_LIMIT  = #maxLimit#,
+               GROUP_DESC = #groupDesc:VARCHAR#
+         WHERE GROUP_NAME = #groupName#
+    </update>
+
+    <delete id="deleteParallelGroup" parameterClass="string">/* deleteParallelGroup */
+        DELETE FROM NBS_PARALLEL_GROUP
+         WHERE GROUP_NAME = #groupName#
+    </delete>
+
+    <!-- ■■■■■■■■■■■ Parallel Group ■■■■■■■■■■■■■-->
+
+
+    <!-- ■■■■■■■■■■■ Global Param  ■■■■■■■■■■■■■-->
+    <select id="selectGlobalParam" parameterClass="string" resultClass="hmap">/* selectGlobalParam */
+        SELECT SEQ, PARAM_NAME, PARAM_VALUE
+          FROM NBS_GLOBAL_PARAM
+         ORDER BY SEQ
+    </select>
+
+    <update id="updateGlobalParam" parameterClass="map">/* updateGlobalParam */
+        UPDATE NBS_GLOBAL_PARAM
+           SET PARAM_VALUE = #paramValue:VARCHAR#
+         WHERE PARAM_NAME  = #paramName#
+    </update>
+
+    <insert id="insertGlobalParam" parameterClass="map">/* insertGlobalParam */
+        INSERT INTO NBS_GLOBAL_PARAM (PARAM_NAME, PARAM_VALUE) VALUES (#paramName#, #paramValue:VARCHAR#)
+    </insert>
+
+    <delete id="deleteGlobalParam" parameterClass="map">/* deleteGlobalParam */
+        DELETE FROM NBS_GLOBAL_PARAM
+         WHERE PARAM_NAME  = #paramName#
+    </delete>
+
+    <!-- ■■■■■■■■■■■ Global Param  ■■■■■■■■■■■■■-->
+
+
+    <!-- ■■■■■■■■■■■ Activation Log ■■■■■■■■■■■■■-->
+    <select id="selectActivationLogExist" parameterClass="string" resultClass="string">/* selectActivationLogExist */
+        SELECT 'TRUE' 
+          FROM NBS_ACTIVATION_LOG
+         WHERE PROC_DATE = #procDate#
+    </select>
+
+    <insert id="insertActivationLog" parameterClass="map">/* insertActivationLog */
+        INSERT INTO NBS_ACTIVATION_LOG
+            (ACTIVATION_TIME, PROC_DATE, SYSTEM_ID, JOB_INS_COUNT, JOB_INS_ID_LIST)
+        VALUES ( #systimestamp#, #procDate#, #systemId#, #jobInsCount#, #jobInsIdList:VARCHAR# )
+    </insert>
+
+    <update id="updateActivationLog" parameterClass="map">/* updateActivationLog */
+        UPDATE NBS_ACTIVATION_LOG
+           SET ACTIVATION_TIME = #systimestamp#, 
+               JOB_INS_COUNT   = #jobInsCount# , 
+               JOB_INS_ID_LIST = #jobInsIdList:VARCHAR#
+         WHERE PROC_DATE = #procDate# 
+    </update>
+
+    <delete id="deleteActivationLog" parameterClass="map">/* deleteActivationLog */
+        DELETE FROM NBS_ACTIVATION_LOG
+         WHERE PROC_DATE = #procDate# 
+    </delete>
+
+    <!-- ■■■■■■■■■■■ Activation Log ■■■■■■■■■■■■■-->
+
+
+
+    <!-- ■■■■■■■■■■■ Job Definition Stg ■■■■■■■■■■■■■-->
+    <resultMap id="JobDefinitionStg-ResultMap" class="nexcore.scheduler.entity.JobDefinitionStg">
+        <result property="reqNo"                    column="REQ_NO"/>
+        <result property="reqUserName"              column="REQ_USERNAME"/>
+        <result property="reqUserIp"                column="REQ_USER_IP"/>
+        <result property="reqTime"                  column="REQ_TIME"/>
+        <result property="reqType"                  column="REQ_TYPE"/>
+        <result property="reqComment"               column="REQ_COMMENT"/>
+        <result property="reqState"                 column="REQ_STATE"/>
+        <result property="reqARReason"              column="REQ_AR_REASON"/>
+        <result property="reqOperatorId"            column="REQ_OPER_ID"/>
+        <result property="reqOperatorName"          column="REQ_OPER_NAME"/>
+        <result property="reqOperatorIp"            column="REQ_OPER_IP"/>
+        <result property="jobId"                    column="JOB_ID"/>
+        <result property="jobGroupId"               column="JOB_GROUP_ID"/>
+        <result property="owner"                    column="OWNER"/>
+        <result property="description"              column="JOB_DESC"/>
+        <result property="timeFrom"                 column="TIME_FROM"/>
+        <result property="timeUntil"                column="TIME_UNTIL"/>
+        <result property="repeatYN"                 column="REPEAT_YN"/>
+        <result property="repeatIntval"             column="REPEAT_INTVAL"/>
+        <result property="repeatIntvalGb"           column="REPEAT_INTVAL_GB"/>
+        <result property="repeatIfError"            column="REPEAT_IF_ERROR"/>
+        <result property="repeatMaxOk"              column="REPEAT_MAX_OK"/>
+        <result property="repeatExactExp"           column="REPEAT_EXACT_EXP"/>
+        <result property="confirmNeedYN"            column="CONFIRM_NEED_YN"/>
+        <result property="parallelGroup"            column="PARALLEL_GROUP"/>
+        <result property="jobType"                  column="JOB_TYPE"/>
+        <result property="agentNode"                column="AGENT_NODE"/>
+        <result property="componentName"            column="COMPONENT_NAME"/>
+        <result property="scheduleType"             column="SCHEDULE_TYPE"/>
+        <result property="daysInMonth"              column="DAYS_IN_MONTH"/>
+        <result property="months"                   column="MONTHS"/>
+        <result property="daysOfWeek"               column="DAYS_OF_WEEK"/>
+        <result property="weekdayMonthdayType"      column="WEEKDAY_MONTHDAY_TYPE"/>
+        <result property="calendarId"               column="CALENDAR_ID"/>
+        <result property="calendarExps"             column="CALENDAR_EXP"/>
+        <result property="dayOfMonthScheduleType"   column="DAY_SCHEDULE_TYPE"/>
+        <result property="beforeAfterExp"           column="BEFORE_AFTER_EXP"/>
+        <result property="shiftExp"                 column="SHIFT_EXP"/>
+        <result property="shiftExp2"                column="SHIFT_EXP2"/>
+        <result property="fixedDays"                column="FIXED_DAYS"/>
+        <result property="extraSchedule"            column="EXTRA_SCHEDULE"/>
+        <result property="baseDateCalId"            column="BASE_DATE_CAL_ID"/>
+        <result property="baseDateLogic"            column="BASE_DATE_LOGIC"/>
+        <result property="logLevel"                 column="LOG_LEVEL"/>
+        <result property="createTime"               column="CREATE_TIME"/>
+        <result property="lastModifyTime"           column="LAST_MODIFY_TIME"/>
+    </resultMap>
+
+    <select id="selectJobDefinitionStgsByQuery" parameterClass="string" resultMap="JobDefinitionStg-ResultMap" >/* selectJobDefinitionStgsByQuery */
+        SELECT *
+          FROM NBS_JOB_DEF_STG
+          $queryCondition$
+    </select>
+
+    <select id="selectJobDefinitionStgById" parameterClass="map" resultMap="JobDefinitionStg-ResultMap" >/* selectJobDefinitionStgById */
+        SELECT *
+          FROM NBS_JOB_DEF_STG
+         WHERE REQ_NO = #reqNo#
+           AND JOB_ID = #jobId#
+    </select>
+
+    <select id="selectJobDefPreJobConditionStgsByQuery" parameterClass="string" resultClass="hmap">/* selectJobDefPreJobConditionStgsByQuery */
+        SELECT a.JOB_ID, a.SEQ, a.PRE_JOB_ID, a.OK_FAIL, a.AND_OR
+          FROM NBS_JOB_DEF_PREJOB_STG a,
+               (SELECT REQ_NO, JOB_ID FROM NBS_JOB_DEF_STG $queryCondition$) b
+        WHERE a.REQ_NO=b.REQ_NO
+          and a.JOB_ID=b.JOB_ID
+        ORDER BY a.JOB_ID, a.SEQ
+    </select>
+
+    <select id="selectJobDefPreJobConditionStgById" parameterClass="map" resultClass="hmap">/* selectJobDefPreJobConditionStgById */
+        SELECT JOB_ID, SEQ, PRE_JOB_ID, OK_FAIL, AND_OR
+          FROM NBS_JOB_DEF_PREJOB_STG
+         WHERE REQ_NO = #reqNo#
+           AND JOB_ID = #jobId#
+         ORDER BY SEQ
+    </select>
+
+    <select id="selectJobDefPostJobTriggerStgsByQuery" parameterClass="string" resultClass="hmap">/* selectJobDefPostJobTriggerStgsByQuery */
+        SELECT a.JOB_ID, a.SEQ, a.WHEN, a.CHECK_VALUE1, a.CHECK_VALUE2, a.CHECK_VALUE3, a.TRIGGER_JOB_ID, a.INSTANCE_COUNT
+          FROM NBS_JOB_DEF_TRIGGER_STG a
+             , (SELECT REQ_NO, JOB_ID FROM NBS_JOB_DEF_STG $queryCondition$) b
+         WHERE a.REQ_NO=b.REQ_NO
+           and a.JOB_ID=b.JOB_ID
+         ORDER BY a.JOB_ID, a.SEQ
+    </select>
+
+    <select id="selectJobDefPostJobTriggerStgById" parameterClass="map" resultClass="hmap">/* selectJobDefPostJobTriggerStgById */
+        SELECT JOB_ID, SEQ, WHEN, CHECK_VALUE1, CHECK_VALUE2, CHECK_VALUE3, TRIGGER_JOB_ID, INSTANCE_COUNT
+          FROM NBS_JOB_DEF_TRIGGER_STG
+         WHERE REQ_NO = #reqNo#
+           AND JOB_ID = #jobId#
+         ORDER BY SEQ
+    </select>
+
+    <select id="selectJobDefParamStgsByQuery" parameterClass="string" resultClass="hmap">/* selectJobDefParamStgsByQuery */
+        SELECT a.JOB_ID, a.SEQ, a.PARAM_NAME, a.PARAM_VALUE
+          FROM NBS_JOB_DEF_PARAM_STG a
+             , (SELECT REQ_NO, JOB_ID FROM NBS_JOB_DEF_STG $queryCondition$) b
+        WHERE a.REQ_NO=b.REQ_NO
+          and a.JOB_ID=b.JOB_ID
+        ORDER BY a.JOB_ID, a.SEQ
+    </select>
+
+    <select id="selectJobDefParamStgById" parameterClass="map" resultClass="hmap">/* selectJobDefParamStgById */
+        SELECT JOB_ID, SEQ, PARAM_NAME, PARAM_VALUE
+          FROM NBS_JOB_DEF_PARAM_STG
+         WHERE REQ_NO = #reqNo#
+           AND JOB_ID = #jobId#
+         ORDER BY SEQ
+    </select>
+
+    <insert id="insertJobDefinitionStg" parameterClass="nexcore.scheduler.entity.JobDefinitionStg">/* insertJobDefinitionStg */
+        INSERT INTO NBS_JOB_DEF_STG
+               (REQ_NO, REQ_USERNAME, REQ_USER_IP, REQ_TIME, REQ_TYPE, REQ_COMMENT, REQ_STATE, REQ_AR_REASON, REQ_OPER_ID, REQ_OPER_NAME, REQ_OPER_IP,
+                JOB_ID, JOB_GROUP_ID, OWNER, JOB_DESC, TIME_FROM, TIME_UNTIL,
+                REPEAT_YN, REPEAT_INTVAL, REPEAT_INTVAL_GB, REPEAT_IF_ERROR, REPEAT_MAX_OK, REPEAT_EXACT_EXP, CONFIRM_NEED_YN, PARALLEL_GROUP,
+                JOB_TYPE, AGENT_NODE, COMPONENT_NAME, 
+                SCHEDULE_TYPE, DAYS_IN_MONTH, MONTHS, DAYS_OF_WEEK, WEEKDAY_MONTHDAY_TYPE, CALENDAR_ID, CALENDAR_EXP,
+                DAY_SCHEDULE_TYPE, BEFORE_AFTER_EXP, SHIFT_EXP, SHIFT_EXP2, FIXED_DAYS, EXTRA_SCHEDULE, BASE_DATE_CAL_ID, BASE_DATE_LOGIC, LOG_LEVEL, CREATE_TIME, LAST_MODIFY_TIME)
+        VALUES (
+                #reqNo#,#reqUserName:VARCHAR#,#reqUserIp:VARCHAR#,#reqTime:VARCHAR#,#reqType:VARCHAR#,#reqComment:VARCHAR#,#reqState:VARCHAR#,#reqARReason:VARCHAR#,#reqOperatorId:VARCHAR#,#reqOperatorName:VARCHAR#,#reqOperatorIp:VARCHAR#,
+                #jobId:VARCHAR#,#jobGroupId:VARCHAR#,#owner:VARCHAR#,#description:VARCHAR#,#timeFrom:VARCHAR#,#timeUntil:VARCHAR#,
+                #repeatYN:VARCHAR#,#repeatIntval:VARCHAR#,#repeatIntvalGb:VARCHAR#,#repeatIfError:VARCHAR#,#repeatMaxOk:VARCHAR#,#repeatExactExp:VARCHAR#,#confirmNeedYN:VARCHAR#,#parallelGroup:VARCHAR#,
+                #jobType:VARCHAR#,#agentNode:VARCHAR#,#componentName:VARCHAR#,
+                #scheduleType:VARCHAR#,#daysInMonth:VARCHAR#,#months:VARCHAR#,#daysOfWeek:VARCHAR#,#weekdayMonthdayType:VARCHAR#,#calendarId:VARCHAR#,#calendarExps:VARCHAR#,
+                #dayOfMonthScheduleType:VARCHAR#,#beforeAfterExp:VARCHAR#,#shiftExp:VARCHAR#,#shiftExp2:VARCHAR#,#fixedDays:VARCHAR#,#extraSchedule:VARCHAR#,#baseDateCalId:VARCHAR#,#baseDateLogic:VARCHAR#, #logLevel:VARCHAR#, #createTime:VARCHAR#, #lastModifyTime:VARCHAR#)
+    </insert>
+    <insert id="insertJobDefPreJobStgList" parameterClass="map">/* insertJobDefPreJobStgList */
+        INSERT INTO NBS_JOB_DEF_PREJOB_STG
+               (REQ_NO, JOB_ID, SEQ, PRE_JOB_ID, OK_FAIL, AND_OR)
+        VALUES (#reqNo#, #jobId#, #seq#, #preJobId#, #okFail#, #andOr:VARCHAR#)
+    </insert>
+
+    <insert id="insertJobDefPostJobTriggerStg" parameterClass="map">/* insertJobDefPostJobTriggerStg */
+        INSERT INTO NBS_JOB_DEF_TRIGGER_STG
+               (REQ_NO, JOB_ID, SEQ, WHEN, CHECK_VALUE1, CHECK_VALUE2, CHECK_VALUE3, TRIGGER_JOB_ID, INSTANCE_COUNT)
+        VALUES (#reqNo#, #jobId#, #seq#, #when#, #checkValue1:VARCHAR#, #checkValue2:VARCHAR#, #checkValue3:VARCHAR#, #triggerJobId:VARCHAR#, #instanceCount#)
+    </insert>
+
+    <insert id="insertJobDefParamStg" parameterClass="map">/* insertJobDefParamStg */
+        INSERT INTO NBS_JOB_DEF_PARAM_STG
+               (REQ_NO, JOB_ID, SEQ, PARAM_NAME, PARAM_VALUE)
+        VALUES (#reqNo#, #jobId#, #seq#, #paramName#, #paramValue:VARCHAR#)
+    </insert>
+    <update id="updateJobDefinitionStgReqInfo" parameterClass="nexcore.scheduler.entity.JobDefinitionStg">/* updateJobDefinitionStgReqInfo */
+        UPDATE NBS_JOB_DEF_STG
+           SET REQ_STATE        = #reqState#,
+               REQ_AR_REASON    = #reqARReason#,
+               REQ_OPER_ID      = #reqOperatorId#,
+               REQ_OPER_NAME    = #reqOperatorName#,
+               REQ_OPER_IP      = #reqOperatorIp#,
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE REQ_NO           = #reqNo#
+           AND JOB_ID           = #jobId#
+    </update>
+    <delete id="deleteJobDefinitionStg" parameterClass="string">/* deleteJobDefinitionStg */
+        DELETE FROM NBS_JOB_DEF_STG WHERE REQ_NO=#reqno# AND REQ_STATE='Q'
+    </delete>
+    <delete id="deleteJobDefPreJobStgList" parameterClass="string">/* deleteJobDefPreJobStgList */
+        DELETE FROM NBS_JOB_DEF_PREJOB_STG WHERE REQ_NO=#reqno#
+    </delete>
+    <delete id="deleteJobDefPostJobTriggerStg" parameterClass="string">/* deleteJobDefPostJobTriggerStg */
+        DELETE FROM NBS_JOB_DEF_TRIGGER_STG WHERE REQ_NO=#reqno#
+    </delete>
+    <delete id="deleteJobDefParamStg" parameterClass="string">/* deleteJobDefParamStg */
+        DELETE FROM NBS_JOB_DEF_PARAM_STG  WHERE REQ_NO=#reqno#
+    </delete>
+
+    <!-- ■■■■■■■■■■■ Job Definition Stg ■■■■■■■■■■■■■-->
+
+    <!-- ■■■■■■■■■■■ ID Generator ■■■■■■■■■■■■■-->
+    <select id="selectLastSeq" parameterClass="map" resultClass="hmap">/* selectLastSeq */
+        SELECT * 
+          FROM NBS_IDGEN_BASE
+         WHERE KEY_NAME = #keyName#
+           AND ID_TYPE  = #idType#
+    </select>
+
+    <update id="updateLastSeq" parameterClass="map">/* updateLastSeq */
+        UPDATE NBS_IDGEN_BASE
+           SET LAST_SEQ         = #newLastSeq#,
+               LAST_MODIFY_USER = #newLastModifyUser#,
+               LAST_MODIFY_TIME = #newLastModifyTime#
+         WHERE ID_TYPE          = #idType#
+           AND KEY_NAME         = #keyName#
+           AND LAST_SEQ         = #oldLastSeq#
+           AND LAST_MODIFY_USER = #oldLastModifyUser#
+           AND LAST_MODIFY_TIME = #oldLastModifyTime#
+    </update>
+
+    <insert id="insertLastSeq" parameterClass="map">/* insertLastSeq */
+        INSERT INTO NBS_IDGEN_BASE
+               (ID_TYPE, KEY_NAME, LAST_SEQ, LAST_MODIFY_USER, LAST_MODIFY_TIME)
+        VALUES (#idType#, #keyName#, #lastSeq#, #lastModifyUser#, #lastModifyTime#)
+    </insert>
+    <!-- ■■■■■■■■■■■ ID Generator ■■■■■■■■■■■■■-->
+
+    <!-- ■■■■■■■■■■■ TimeScheduler ■■■■■■■■■■■■■-->
+    <insert id="insertTimeSchedulerLog" parameterClass="map">/* insertTimeSchedulerLog */
+        INSERT INTO NBS_TIMESCH_LOG
+               (TS_DATE, TS_TIME, SYSTEM_ID, LAST_MODIFY_TIME)
+        VALUES (TO_CHAR(SYSDATE, 'YYYYMMDD'), TO_CHAR(SYSDATE, 'HH24MI'), #systemId#, #lastModifyTime#)
+    </insert>
+
+    <!-- ■■■■■■■■■■■ TimeScheduler ■■■■■■■■■■■■■-->
+
+</sqlMap>

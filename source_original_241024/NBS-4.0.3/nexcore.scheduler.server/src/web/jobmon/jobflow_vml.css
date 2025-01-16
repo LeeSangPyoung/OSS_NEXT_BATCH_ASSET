@@ -1,0 +1,25 @@
+
+.font1 {
+	font-family:Tahoma, Arial, Helvetica, sans-serif, dotum;  
+	font-size: 13px;
+}
+.font1_center {
+    font-family:Tahoma, Arial, Helvetica, sans-serif, dotum;  
+    font-size:13px;
+    text-align: center;
+}
+.font1_right {
+	font-family:Tahoma, Arial, Helvetica, sans-serif, dotum;  
+	font-size: 13px;
+	text-align: right;
+}
+.font_jobid {
+    font-family:Tahoma, Arial, Helvetica, sans-serif, dotum;  
+    font-size:13px;
+    font-weight:bold;
+}
+.font_jobinsid {
+    font-family:Tahoma, Arial, Helvetica, sans-serif, dotum;  
+    font-size:11px;
+    font-weight:bold;
+}

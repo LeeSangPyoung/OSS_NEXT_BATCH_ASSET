@@ -1,0 +1,138 @@
+
+.font1 {
+	font-family:Tahoma, Arial, Helvetica, sans-serif, dotum;  
+	font-size:13px;
+	text-anchor:start;
+}
+.font1_middle {
+	font-family:Tahoma, Arial, Helvetica, sans-serif, dotum;  
+	font-size:13px;
+	text-anchor:middle;
+}
+.font1_right {
+	font-family:Tahoma, Arial, Helvetica, sans-serif, dotum;  
+	font-size:13px;
+	text-anchor:end;
+}
+.font_jobid {
+    font-family:Tahoma, Arial, Helvetica, sans-serif, dotum;  
+    font-size:13px;
+    font-weight:bold;
+}
+.font_jobinsid {
+    font-family:Tahoma, Arial, Helvetica, sans-serif, dotum;  
+    font-size:11px;
+    font-weight:bold;
+}
+
+/* JobDefinition Node style */
+.def_node {
+	fill:#dfdfdf;
+	stroke:#2f2f2f;
+	stroke-width:1;
+}
+.def_node_jobid {
+	fill:#cdcdfd;
+	stroke-width:0;
+}
+.def_node_desc {
+	fill:#efefef;
+	stroke-width:0;
+}
+.def_node_outer {
+	fill:#afafaf;
+	opacity:0;
+	stroke:#ff0000;
+	stroke-width:5;
+}
+.def_node_virtual {
+	fill:#dfdfdf;
+	stroke:#2f2f2f;
+	stroke-width:2;
+	stroke-dasharray:5;
+}
+.line {
+	stroke:#8899FF;
+	stroke-width:2;
+}
+
+.line_mouseover {
+	cursor:pointer; 
+	stroke:#FF0000;
+	stroke-width:4; 
+	opacity:0.4; 
+}
+
+/* JobInstance Node style */
+.ins_node {
+	stroke:#2f2f2f;
+	stroke-width:1;
+}
+.ins_node_jobid {
+	fill:#efefef;
+	stroke-width:0;
+}
+.ins_node_jobid_locked {
+    fill:#FFCCAA;
+    stroke-width:0;
+}
+.ins_node_desc {
+	fill:#ffffff;
+	stroke-width:0;
+}
+.ins_node_prgs_bg {
+	fill:#dadada;
+	stroke-width:0;
+}
+.ins_node_prgs_running {
+	fill:#efaf50;
+	stroke-width:0;
+}
+.ins_node_prgs_endok {
+    fill:#9f9fff;
+    stroke-width:0;
+}
+.ins_node_prgs_endfail {
+    fill:#ff0000;
+    stroke-width:0;
+}
+.ins_node_outer {
+	fill:#afafaf;
+	opacity:0;
+	stroke:#ff0000;
+	stroke-width:5;
+}
+.ins_node_virtual {
+	fill:#dfdfdf;
+	stroke:#2f2f2f;
+	stroke-width:2;
+	stroke-dasharray:5;
+}
+.ins_node_bg_I {
+	fill:#efefef;
+}
+.ins_node_bg_W {
+	fill:#efefef;
+}
+.ins_node_bg_O {
+	fill:#52e222;
+}
+.ins_node_bg_F {
+	fill:#d42515;
+}
+.ins_node_bg_R {
+	fill:#ffff00;
+}
+.ins_node_bg_P {
+	fill:#aaaa00;
+}
+.ins_node_bg_S {
+	fill:#e9e9a9;
+}
+.ins_node_bg_G {
+	fill:#F08080;
+}
+.ins_node_bg_X {
+	fill:#006400;
+}
+

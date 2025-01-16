@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:util="http://www.springframework.org/schema/util"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+            http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+            http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+            http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!-- ################################################################## -->
+    <!-- Customize       영역                                               -->
+    <!-- ################################################################## -->
+
+    <bean id="nbs.scheduler.DataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+        <description><![CDATA[Scheduler main DataSource]]></description>
+        <property name="driverClassName"   value="${scheduler.jdbc.driver.${NEXCORE_ID}}"/>
+        <property name="url"               value="${scheduler.jdbc.url.${NEXCORE_ID}}"/>
+        <property name="username"          value="${scheduler.jdbc.username.${NEXCORE_ID}}"/>
+        <property name="password">
+            <bean class="nexcore.scheduler.util.PasswordPropertyGetter">
+                <property name="password" value="${scheduler.jdbc.password.${NEXCORE_ID}}"/>
+            </bean>
+        </property>
+        <property name="initialSize"       value="2"/>
+        <property name="maxActive"         value="30"/>
+        <property name="maxIdle"           value="5"/>
+        <property name="maxWait"           value="30000"/>
+        <property name="validationQuery"   value="${scheduler.jdbc.validation.sql}"/>
+        <property name="testOnBorrow"      value="true"/>
+        <property name="testOnReturn"      value="false"/>
+        <property name="testWhileIdle"     value="true"/>
+        <property name="timeBetweenEvictionRunsMillis" value="60000"/>
+    </bean>
+    
+    <!-- bean id="nbs.scheduler.DataSource" class="org.springframework.jndi.JndiObjectFactoryBean">
+        <property name="jndiName"         value="java:/jdbc/SchedulerDS"/>
+    </bean-->
+
+    <bean id="nbs.scheduler.ScheduleCalendar"
+        class="nexcore.scheduler.core.internal.ScheduleCalendar"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Calendar 정보 구성]]></description>
+        
+        <!-- File 에서 Calendar 읽어옴 
+        <property name="sourceType"  value="file"/>
+        <property name="files">
+            <map>
+                <entry key="0:매일"   value="${NEXCORE_HOME}/etc/calendar_allday.txt" />
+                <entry key="1:영업일" value="${NEXCORE_HOME}/etc/calendar_bizday.txt"   />
+                <entry key="3:휴일"   value="${NEXCORE_HOME}/etc/calendar_holiday.txt"   />
+            </map>
+        </property>-->
+        
+        <!-- DB 에서 Calendar 읽어옴 -->
+        <property name="sourceType"  value="db"/>
+        <!--<property name="dataSource"  ref="calendar.DataSource"/>-->
+	<property name="dataSource"  ref="nbs.scheduler.DataSource"/>
+        <property name="calendarSql">
+            <map>
+		<entry key="0:매일">
+                    <value><![CDATA[
+				select TO_CHAR(date::DATE, 'YYYYMMDD') as stdr_dt
+				  from pg_catalog.generate_series(
+						DATE_TRUNC('year', CURRENT_DATE) - interval '1 year',
+						DATE_TRUNC('year', CURRENT_DATE) + interval '1 year' - interval '1 day', '1 day') as date
+			]]>
+                    </value>
+                </entry>
+		<!--
+                <entry key="0:매일">
+                    <value><![CDATA[
+                        SELECT TO_CHAR(TO_DATE(TO_CHAR(SYSDATE-365, 'YYYY')||'0101') + LEVEL - 1, 'YYYYMMDD') AS STDR_DT
+                          FROM DUAL
+                        CONNECT BY LEVEL <= TO_DATE(TO_CHAR(SYSDATE+365, 'YYYY')||'1231')
+                                          - TO_DATE((TO_CHAR(SYSDATE-365, 'YYYY')||'0101')) + 1]]>
+                    </value>
+                </entry>
+-->
+		<!--
+                <entry key="1:영업일">
+                    <value><![CDATA[
+                        SELECT STDR_DT
+                          FROM (SELECT TO_CHAR(TO_DATE(TO_CHAR(SYSDATE-365, 'YYYY')||'0101')+LEVEL - 1, 'YYYYMMDD') AS STDR_DT 
+                                FROM DUAL CONNECT BY LEVEL <= TO_DATE(TO_CHAR(SYSDATE+1095, 'YYYY')||'1231') 
+                                 - TO_DATE(TO_CHAR(SYSDATE-365, 'YYYY')||'0101') + 1 )
+                         WHERE STDR_DT NOT IN ( SELECT NON_SDAY
+                                                 FROM DW.TIMD_NBANKDAY 
+                                                WHERE NON_SDAY BETWEEN TO_CHAR(SYSDATE-365, 'YYYY')||'0101' 
+                                                  AND TO_CHAR(SYSDATE+365, 'YYYY')||'1231'
+                                                  AND bok_nat_c like 'KR') 
+                         ORDER BY STDR_DT ASC]]>
+                    </value>
+                </entry>
+                <entry key="3:휴일">
+                    <value><![CDATA[
+                        SELECT TO_CHAR(NON_SDAY,'YYYYMMDD') AS STDR_DT
+                          FROM DW.TIMD_NBANKDAY 
+                         WHERE NON_SDAY BETWEEN TO_CHAR(SYSDATE-365, 'YYYY')||'0101' 
+                           AND TO_CHAR(SYSDATE+365, 'YYYY')||'1231'
+                           AND bok_nat_c like 'KR'
+                         ORDER BY NON_SDAY ASC]]>
+                    </value>
+                </entry>
+		-->
+                
+		<!--
+		<entry key="1:SKT영업일">
+                    <value><![CDATA[
+                        SELECT STDR_DT
+						FROM (SELECT TO_CHAR(TO_DATE(TO_CHAR(SYSDATE-365, 'YYYY')||'0101')+LEVEL - 1, 'YYYYMMDD') AS STDR_DT
+								   , TO_CHAR(TO_DATE(TO_CHAR(SYSDATE-365, 'YYYY')||'0101')+LEVEL - 1, 'D') AS STDR_D
+							  FROM DUAL CONNECT BY LEVEL <= TO_DATE(TO_CHAR(SYSDATE+1095, 'YYYY')||'1231')
+							   - TO_DATE(TO_CHAR(SYSDATE-365, 'YYYY')||'0101') + 1 )
+						WHERE STDR_DT NOT IN ( SELECT HDAY_DT
+											   FROM CCO_HDAY_INF
+											  WHERE HDAY_DT BETWEEN TO_CHAR(SYSDATE-365, 'YYYY')||'0101'
+												AND TO_CHAR(SYSDATE+365, 'YYYY')||'1231'
+												AND ORG_GRP_CD='SKT')
+						  AND STDR_D NOT IN ('1', '7')
+						ORDER BY STDR_DT ASC]]>
+                    </value>
+                </entry>
+
+                <entry key="2:SKB영업일">
+                    <value><![CDATA[
+                        SELECT STDR_DT
+						FROM (SELECT TO_CHAR(TO_DATE(TO_CHAR(SYSDATE-365, 'YYYY')||'0101')+LEVEL - 1, 'YYYYMMDD') AS STDR_DT
+								   , TO_CHAR(TO_DATE(TO_CHAR(SYSDATE-365, 'YYYY')||'0101')+LEVEL - 1, 'D') AS STDR_D
+							  FROM DUAL CONNECT BY LEVEL <= TO_DATE(TO_CHAR(SYSDATE+1095, 'YYYY')||'1231')
+							   - TO_DATE(TO_CHAR(SYSDATE-365, 'YYYY')||'0101') + 1 )
+						WHERE STDR_DT NOT IN ( SELECT HDAY_DT
+											   FROM CCO_HDAY_INF
+											  WHERE HDAY_DT BETWEEN TO_CHAR(SYSDATE-365, 'YYYY')||'0101'
+												AND TO_CHAR(SYSDATE+365, 'YYYY')||'1231'
+												AND ORG_GRP_CD='SKB')
+						  AND STDR_D NOT IN ('1', '7')
+						ORDER BY STDR_DT ASC]]>
+                    </value>
+                </entry>
+
+        	<entry key="3:SKT휴일">
+                    <value><![CDATA[
+						SELECT STDR_DT
+						FROM
+						  (SELECT TO_CHAR(TO_DATE(TO_CHAR(SYSDATE-365, 'YYYY')||'0101') +LEVEL - 1, 'YYYYMMDD') AS STDR_DT
+						  , TO_CHAR(TO_DATE(TO_CHAR(SYSDATE      -365, 'YYYY')||'0101') +LEVEL - 1, 'D') AS STDR_D
+						  FROM DUAL
+						  CONNECT BY LEVEL <= TO_DATE(TO_CHAR(SYSDATE+1095, 'YYYY')||'1231')- TO_DATE(TO_CHAR(SYSDATE-365, 'YYYY')||'0101')+ 1
+						  )
+						WHERE STDR_D IN ('1', '7')
+						UNION
+						SELECT HDAY_DT AS STDR_DT
+						FROM CCO_HDAY_INF
+						WHERE HDAY_DT BETWEEN TO_CHAR(SYSDATE-365, 'YYYY')||'0101' AND TO_CHAR(SYSDATE+365, 'YYYY')||'1231'
+						AND ORG_GRP_CD='SKT'
+						ORDER BY STDR_DT ASC]]>
+                    </value>
+                </entry>
+		<entry key="4:SKB휴일">
+                    <value><![CDATA[
+						SELECT STDR_DT
+						FROM
+						  (SELECT TO_CHAR(TO_DATE(TO_CHAR(SYSDATE-365, 'YYYY')||'0101') +LEVEL - 1, 'YYYYMMDD') AS STDR_DT
+						  , TO_CHAR(TO_DATE(TO_CHAR(SYSDATE      -365, 'YYYY')||'0101') +LEVEL - 1, 'D') AS STDR_D
+						  FROM DUAL
+						  CONNECT BY LEVEL <= TO_DATE(TO_CHAR(SYSDATE+1095, 'YYYY')||'1231')- TO_DATE(TO_CHAR(SYSDATE-365, 'YYYY')||'0101')+ 1
+						  )
+						WHERE STDR_D IN ('1', '7')
+						UNION
+						SELECT HDAY_DT AS STDR_DT
+						FROM CCO_HDAY_INF
+						WHERE HDAY_DT BETWEEN TO_CHAR(SYSDATE-365, 'YYYY')||'0101' AND TO_CHAR(SYSDATE+365, 'YYYY')||'1231'
+						AND ORG_GRP_CD='SKB'
+						ORDER BY STDR_DT ASC]]>
+                    </value>
+                </entry>
+-->
+            </map>
+        </property>
+    </bean>
+
+    <!-- ScheduleCalendar 가 db 방식일때 사용됨
+    <bean id="calendar.DataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+        <property name="driverClassName"   value="${calendar.jdbc.driver.${NEXCORE_ID}}"/>
+        <property name="url"               value="${calendar.jdbc.url.${NEXCORE_ID}}"/>
+        <property name="username"          value="${calendar.jdbc.username.${NEXCORE_ID}}"/>
+        <property name="password">
+            <bean class="nexcore.scheduler.util.PasswordPropertyGetter">
+                <property name="password" value="${calendar.jdbc.password.${NEXCORE_ID}}"/>
+            </bean>
+        </property>
+        <property name="initialSize"       value="1"/>
+        <property name="maxActive"         value="30"/>
+        <property name="maxIdle"           value="3"/>
+        <property name="maxWait"           value="30000"/>
+        <property name="validationQuery"   value="SELECT 1 FROM DUAL"/>
+        <property name="testOnBorrow"      value="true"/>
+        <property name="testOnReturn"      value="false"/>
+        <property name="testWhileIdle"     value="true"/>
+        <property name="timeBetweenEvictionRunsMillis" value="60000"/>
+    </bean>
+    -->
+
+    <bean id="nbs.controller.JobInfoValidator"
+        class="nexcore.scheduler.controller.internal.JobInfoValidator"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[Job Namining Rule validator]]></description>
+        <property name="jobTypeManager"    ref  ="nbs.controller.JobTypeManager" />
+    </bean>
+    
+    <bean id="nbs.controller.ParameterManager"
+        class="nexcore.scheduler.controller.internal.ParameterManager"
+        init-method="init" destroy-method="destroy">
+        <description><![CDATA[파라미터를 해석함]]></description>
+        <property name="sqlMapClient"         ref="nbs.scheduler.SqlMapClient" />
+        <property name="scheduleCalendar"     ref="nbs.scheduler.ScheduleCalendar" />
+        <property name="additionalFunctions">
+            <list>
+                <bean class="nexcore.scheduler.controller.internal.param.FunctionGetReturnVal">
+                    <property name="jobInstanceManager"  ref="nbs.scheduler.JobInstanceManager"/>
+                    <property name="jobExecutionManager" ref="nbs.controller.JobExecutionManager"/>
+                </bean>
+                <bean class="nexcore.scheduler.controller.internal.param.FunctionGetInParam">
+                    <property name="jobInstanceManager"  ref="nbs.scheduler.JobInstanceManager"/>
+                </bean>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="nbs.controller.JobRunPreProcessor"
+        class="nexcore.scheduler.controller.internal.MultipleJobRunPreProcessor"
+        init-method="init" destroy-method="destroy">
+        <property name="processors">
+            <list>
+                <!-- bean class="abc.fwk.batch.JobRunPreProcessor" init-method="init" destroy-method="destroy">
+                </bean -->
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="nbs.controller.JobEndPostProcessor"
+        class="nexcore.scheduler.controller.internal.MultipleJobEndPostProcessor"
+        init-method="init" destroy-method="destroy">
+        <property name="processors">
+            <list>
+                <!-- bean class="abc.fwk.batch.JobEndPostProcessor" init-method="init" destroy-method="destroy">
+                </bean -->
+            </list>
+        </property>
+    </bean>
+
+    <bean id="nbs.monitor.JobEndNotifySendDaemon"
+        class="nexcore.scheduler.monitor.internal.JobEndNotifySendDaemon"
+        init-method="init" destroy-method="destroy">
+        <property name="enable"              value="${scheduler.jobnotify.enable.${NEXCORE_ID}}" />
+        <property name="sqlMapClient"        ref  ="nbs.scheduler.SqlMapClient" />
+        <property name="maxRetryCount"       value="10" /> 
+        <property name="maxRetryHour"        value="1" /> <!-- hour   -->
+        <property name="retryIntervalMin"    value="1" /> <!-- minute -->
+        <property name="autoDeleteOldNotify" value="${scheduler.oldnotifyclean.enable.${NEXCORE_ID}}" />
+        <property name="executionTime"       value="${scheduler.oldnotifyclean.time.${NEXCORE_ID}}" />
+        <property name="keepPeriod"          value="${scheduler.oldnotifyclean.keep.${NEXCORE_ID}}" />
+        <property name="senderMap">
+            <map>
+		<entry key="EMAIL" value-ref="tango.EmailNotify"/>
+		<entry key="SMS" value-ref="tango.MmsNotify"/>
+                <!-- entry key="EMAIL"     value-ref="nbs.monitor.JobEndNotifyEmailSender"/>
+                <entry key="TERMINAL"  value-ref="slm.jobend.notify.UMNotify"/>
+                <entry key="SMS"       value-ref="slm.jobend.notify.MmsNotify"/ -->
+            </map>
+        </property>
+    </bean>
+
+        <bean id="tango.MmsNotify"
+                class="com.skt.tango.nexcore.batch.notify.MmsNotify"
+                init-method="init">
+
+        </bean>
+
+        <bean id="tango.EmailNotify"
+                class="com.skt.tango.nexcore.batch.notify.EmailNotify"
+                init-method="init">
+
+        </bean>
+
+    <bean id="nbs.monitor.JobEndNotifyEmailSender"
+        class="nexcore.scheduler.monitor.internal.JobEndNotifyEmailSender"
+        init-method="init" destroy-method="destroy">
+        <property name="enable"               value="${scheduler.jobnotify.smtp.enable.${NEXCORE_ID}}" />
+        <property name="smtpHost"             value="${scheduler.jobnotify.smtp.host.${NEXCORE_ID}}" />
+        <property name="smtpPort"             value="${scheduler.jobnotify.smtp.port.${NEXCORE_ID}}" />
+        <property name="smtpAuth"             value="${scheduler.jobnotify.smtp.auth.${NEXCORE_ID}}" />
+        <property name="smtpSsl"              value="${scheduler.jobnotify.smtp.ssl.${NEXCORE_ID}}" />
+        <property name="smtpUser"             value="${scheduler.jobnotify.smtp.user.${NEXCORE_ID}}" />
+        <property name="smtpPasswd"           value="${scheduler.jobnotify.smtp.passwd.${NEXCORE_ID}}" />
+        <property name="defaultSender"        value="${scheduler.jobnotify.smtp.senderaddr.${NEXCORE_ID}}" />
+        <property name="subjectEncoding"      value="${scheduler.jobnotify.smtp.subject.encoding.${NEXCORE_ID}}" />
+        <property name="contentType"          value="${scheduler.jobnotify.smtp.content.type.${NEXCORE_ID}}" />
+        <property name="templateFilename"     value="${NEXCORE_HOME}/etc/email_notify_template.html" />
+        <property name="templateFileEncoding" value="euc-kr" />
+    </bean>
+
+</beans>

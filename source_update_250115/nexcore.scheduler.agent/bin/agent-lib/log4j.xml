@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<!--  log4j for batch scheduler -->
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+    <appender name="file_scheduler_agent" class="nexcore.scheduler.util.DailyFileAppender">
+        <param name="encoding"        value="MS949" />
+        <param name="Directory"       value="${NEXCORE_LOG_HOME}" />  
+        <param name="FileNamePattern" value="'scheduler-agent-'yyyyMMdd'.log'" />  
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="![%d] [%-5p] %m%n" />
+        </layout>
+    </appender>
+
+    <category name="scheduler_agent" additivity="false">
+        <priority value="info" />
+        <appender-ref ref="file_scheduler_agent" />
+    </category>
+
+    <root>
+        <level value="off"/>
+    </root>
+
+</log4j:configuration>

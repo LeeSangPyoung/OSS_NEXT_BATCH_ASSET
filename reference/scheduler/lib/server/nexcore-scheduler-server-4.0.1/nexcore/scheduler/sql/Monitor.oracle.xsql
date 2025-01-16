@@ -1,0 +1,745 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap
+    PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="nbs.monitor">
+
+    <!-- ■■■■■■■■■■■■■ AgentInfo ■■■■■■■■■■■■■=== -->
+
+    <resultMap id="AgentInfo-ResultMap" class="nexcore.scheduler.entity.AgentInfo" >
+        <result property="id"               column="AGENT_ID"          />
+        <result property="name"             column="AGENT_NAME"        />
+        <result property="desc"             column="AGENT_DESC"        />
+        <result property="ip"               column="AGENT_IP"          />
+        <result property="port"             column="AGENT_PORT"        />
+        <result property="runMode"          column="RUN_MODE"          />
+        <result property="inUseYN"            column="IN_USE"            />
+        <result property="baseDirectory"    column="BASE_DIRECTORY"    />
+        <result property="osUserId"         column="OS_USERID"         />
+        <result property="osPasswd"         column="OS_PASSWD"         />
+        <result property="startCmd"         column="START_CMD"         />
+        <result property="remoteStartType"  column="REMOTE_START_TYPE" />
+        <result property="maxRunningJob"    column="MAX_RUNNING_JOB"    nullValue="0"/>
+        <result property="lastModifyTime"   column="LAST_MODIFY_TIME"  />
+    </resultMap>
+
+    <select id="selectAgentInfo" parameterClass="string" resultMap="AgentInfo-ResultMap" >/* selectAgentInfo */
+        SELECT *
+          FROM NBS_AGENT
+         WHERE AGENT_ID=#id#
+    </select>
+
+    <select id="selectAgentInfoByQuery" parameterClass="map" resultMap="AgentInfo-ResultMap" >/* selectAgentInfoByQuery */
+        SELECT *
+          FROM NBS_AGENT
+          $queryCondition$
+          $orderBy$
+    </select>
+
+	<select id="selectAgentInfoCountByQuery" parameterClass="map" resultClass="int" >/* selectAgentInfoCountByQuery */
+        SELECT COUNT(*) CNT
+          FROM NBS_AGENT
+          $queryCondition$
+    </select>
+    
+    <insert id="insertAgentInfo" parameterClass="nexcore.scheduler.entity.AgentInfo">/* insertAgentInfo */
+        INSERT INTO NBS_AGENT
+               (AGENT_ID, AGENT_NAME, AGENT_DESC, AGENT_IP, AGENT_PORT, RUN_MODE, IN_USE, BASE_DIRECTORY,
+                OS_USERID, OS_PASSWD, START_CMD, REMOTE_START_TYPE, MAX_RUNNING_JOB, LAST_MODIFY_TIME)
+        VALUES (#id#,#name:VARCHAR#,#desc:VARCHAR#,#ip:VARCHAR#,#port#,#runMode:VARCHAR#,#inUseYN:VARCHAR#,#baseDirectory:VARCHAR#,#osUserId:VARCHAR#,#osPasswd:VARCHAR#,#startCmd:VARCHAR#,#remoteStartType:VARCHAR#,#maxRunningJob#,#lastModifyTime#)
+    </insert>
+
+    <update id="updateAgentInfo" parameterClass="nexcore.scheduler.entity.AgentInfo">/* updateAgentInfo */
+        UPDATE NBS_AGENT
+           SET AGENT_NAME          = #name:VARCHAR#,
+               AGENT_DESC          = #desc:VARCHAR#,
+               AGENT_IP            = #ip:VARCHAR#,
+               AGENT_PORT          = #port#,
+               RUN_MODE            = #runMode:VARCHAR#,
+               IN_USE              = #inUseYN:VARCHAR#,
+               BASE_DIRECTORY      = #baseDirectory:VARCHAR#,
+               OS_USERID           = #osUserId:VARCHAR#,
+               OS_PASSWD           = #osPasswd:VARCHAR#,
+               START_CMD           = #startCmd:VARCHAR#,
+               REMOTE_START_TYPE   = #remoteStartType:VARCHAR#,
+               MAX_RUNNING_JOB     = #maxRunningJob#,
+               LAST_MODIFY_TIME    = #lastModifyTime:VARCHAR#
+         WHERE AGENT_ID = #id#
+    </update>
+
+    <delete id="deleteAgentInfo" parameterClass="string">/* deleteAgentInfo */
+        DELETE FROM NBS_AGENT WHERE AGENT_ID=#id#
+    </delete>
+
+    <!-- ■■■■■■■■■■■■■ ViewFilter ■■■■■■■■■■■■■=== -->
+
+    <resultMap id="ViewFilter-ResultMap" class="nexcore.scheduler.entity.ViewFilter" >
+        <result property="id"                column="VF_ID"/>
+        <result property="name"              column="VF_NAME"/>
+        <result property="team"              column="VF_TEAM"/>
+        <result property="owner"             column="VF_OWNER"/>
+        <result property="description"       column="VF_DESC"/>
+        <result property="jobCount"          column="JOB_COUNT"/>
+        <result property="lastModifyTime"    column="LAST_MODIFY_TIME"/>
+    </resultMap>
+
+    <select id="selectViewFilter" parameterClass="int" resultMap="ViewFilter-ResultMap" >/* selectViewFilter */
+        SELECT *
+          FROM NBS_VIEW_FILTER
+         WHERE VF_ID = #id#
+    </select>
+
+    <select id="selectViewFilterByQuery" parameterClass="map" resultMap="ViewFilter-ResultMap" >/* selectViewFilterByQuery */
+        SELECT *
+          FROM NBS_VIEW_FILTER
+          $queryCondition$
+          $orderBy$
+    </select>
+
+    <select id="selectViewFilterJobList" parameterClass="int" resultClass="string" >/* selectViewFilterJobList */
+        SELECT JOB_ID
+          FROM NBS_VIEW_FILTER_DTL
+         WHERE VF_ID = #id#
+    </select>
+
+    <select id="selectJobDefListByViewFilter" parameterClass="int" resultMap="nbs.scheduler.JobDefinition-ResultMap" >/* selectJobDefListByViewFilter */
+        SELECT B.*
+          FROM NBS_VIEW_FILTER_DTL A, NBS_JOB_DEF B
+         WHERE A.VF_ID  = #id#
+           AND A.JOB_ID = B.JOB_ID
+    </select>
+
+    <insert id="insertViewFilter" parameterClass="nexcore.scheduler.entity.ViewFilter">/* insertViewFilter */
+        INSERT INTO NBS_VIEW_FILTER
+               (VF_ID, VF_NAME, VF_TEAM, VF_OWNER, VF_DESC, JOB_COUNT, LAST_MODIFY_TIME)
+        VALUES (NBS_VIEW_FILTER_SEQ.NEXTVAL, #name#, #team#, #owner#, #description:VARCHAR#, #jobCount#, #lastModifyTime#)
+    </insert>
+
+    <insert id="insertViewFilterJobList" parameterClass="map">/* insertViewFilterJobList */
+        INSERT INTO NBS_VIEW_FILTER_DTL
+               (VF_ID, JOB_ID)
+        VALUES (#id#, #jobId#)
+    </insert>
+
+    <update id="updateViewFilter" parameterClass="nexcore.scheduler.entity.ViewFilter">/* updateViewFilter */
+        UPDATE NBS_VIEW_FILTER
+           SET VF_NAME          = #name#,
+               VF_TEAM          = #team#,
+               VF_OWNER         = #owner#,
+               VF_DESC          = #description:VARCHAR#,
+               JOB_COUNT        = (SELECT COUNT(*) FROM NBS_VIEW_FILTER_DTL WHERE VF_ID=#id#),
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE VF_ID            = #id#
+    </update>
+
+    <update id="updateViewFilterJobCount" parameterClass="map">/* updateViewFilterJobCount */
+        UPDATE NBS_VIEW_FILTER
+           SET JOB_COUNT        = (SELECT COUNT(*) FROM NBS_VIEW_FILTER_DTL WHERE VF_ID=#id#),
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE VF_ID            = #id#
+    </update>
+
+    <delete id="deleteViewFilter" parameterClass="int">/* deleteViewFilter */
+        DELETE FROM NBS_VIEW_FILTER WHERE VF_ID=#id#
+    </delete>
+
+    <delete id="deleteViewFilterJobList" parameterClass="map">/* deleteViewFilterJobList */
+        DELETE FROM NBS_VIEW_FILTER_DTL
+         WHERE VF_ID = #id#
+        <dynamic prepend="AND">
+            <isNotEmpty property="jobId">
+               JOB_ID = #jobId#
+            </isNotEmpty>
+        </dynamic>
+    </delete>
+
+
+    <!-- ■■■■■■■■■■■■■ JobNotify ■■■■■■■■■■■■■=== -->
+
+    <resultMap id="JobNotify-ResultMap" class="nexcore.scheduler.entity.JobNotify" >
+        <result property="id"                column="NOTIFY_ID"/>
+        <result property="desc"              column="NOTIFY_DESC"/>
+        <result property="jobIdExpression"   column="JOB_ID_EXP"/>
+        <result property="when"              column="NOTIFY_WHEN"/>
+        <result property="checkValue1"       column="CHECK_VALUE1"/>
+        <result property="checkValue2"       column="CHECK_VALUE2"/>
+        <result property="checkValue3"       column="CHECK_VALUE3"/>
+        <result property="receivers"         column="RECEIVERS"/>
+        <result property="lastModifyTime"    column="LAST_MODIFY_TIME"/>
+    </resultMap>
+
+    <select id="selectJobNotify" parameterClass="int" resultMap="JobNotify-ResultMap" >/* selectJobNotify */
+        SELECT *
+          FROM NBS_NOTIFY
+         WHERE NOTIFY_ID=#id#
+    </select>
+
+    <select id="selectJobNotifyByQuery" parameterClass="map" resultMap="JobNotify-ResultMap" >/* selectJobNotifyByQuery */
+        SELECT *
+          FROM NBS_NOTIFY
+          $queryCondition$
+          $orderBy$
+    </select>
+
+    <insert id="insertJobNotify" parameterClass="nexcore.scheduler.entity.JobNotify">/* insertJobNotify */
+        INSERT INTO NBS_NOTIFY
+               (NOTIFY_ID, NOTIFY_DESC, JOB_ID_EXP, NOTIFY_WHEN, CHECK_VALUE1, CHECK_VALUE2, CHECK_VALUE3, RECEIVERS, LAST_MODIFY_TIME)
+        VALUES (NBS_NOTIFY_SEQ.NEXTVAL, #desc:VARCHAR#, #jobIdExpression#, #when#, #checkValue1:VARCHAR#, #checkValue2:VARCHAR#, #checkValue3:VARCHAR#, #receivers:VARCHAR#, #lastModifyTime#)
+    </insert>
+
+    <update id="updateJobNotify" parameterClass="nexcore.scheduler.entity.JobNotify">/* updateJobNotify */
+        UPDATE NBS_NOTIFY
+           SET NOTIFY_DESC      = #desc:VARCHAR#,
+               JOB_ID_EXP       = #jobIdExpression#,
+               NOTIFY_WHEN      = #when#,
+               CHECK_VALUE1     = #checkValue1:VARCHAR#,
+               CHECK_VALUE2     = #checkValue2:VARCHAR#,
+               CHECK_VALUE3     = #checkValue3:VARCHAR#,
+               RECEIVERS        = #receivers:VARCHAR#,
+               LAST_MODIFY_TIME = #lastModifyTime#
+         WHERE NOTIFY_ID        = #id#
+    </update>
+
+    <delete id="deleteJobNotify" parameterClass="int">/* deleteJobNotify */
+        DELETE FROM NBS_NOTIFY WHERE NOTIFY_ID=#id#
+    </delete>
+
+    <!-- ■■■■■■■■■■■■■ JobNotifyReceiver ■■■■■■■■■■■■■=== -->
+
+    <resultMap id="JobNotifyReceiver-ResultMap" class="nexcore.scheduler.entity.JobNotifyReceiver" >
+        <result property="id"                column="RECEIVER_ID"/>
+        <result property="name"              column="RECEIVER_NAME"/>
+        <result property="desc"              column="RECEIVER_DESC"/>
+        <result property="recvByEmailYN"     column="RECV_BY_EMAIL"/>
+        <result property="emailAddr"         column="EMAIL_ADDR"/>
+        <result property="recvBySmsYN"       column="RECV_BY_SMS"/>
+        <result property="smsNum"            column="SMS_NUM"/>
+        <result property="recvByMessengerYN" column="RECV_BY_MESSENGER"/>
+        <result property="messengerId"       column="MESSENGER_ID"/>
+        <result property="recvByTerminalYN"  column="RECV_BY_TERMINAL"/>
+        <result property="terminalId"        column="TERMINAL_ID"/>
+        <result property="recvByDev1YN"      column="RECV_BY_DEV1"/>
+        <result property="dev1Point"         column="DEV1_POINT"/>
+        <result property="recvByDev2YN"      column="RECV_BY_DEV2"/>
+        <result property="dev2Point"         column="DEV2_POINT"/>
+        <result property="recvByDev3YN"      column="RECV_BY_DEV3"/>
+        <result property="dev3Point"         column="DEV3_POINT"/>
+        <result property="lastModifyTime"    column="LAST_MODIFY_TIME"/>
+    </resultMap>
+
+    <select id="selectJobNotifyReceiver" parameterClass="int" resultMap="JobNotifyReceiver-ResultMap" >/* selectJobNotifyReceiver */
+        SELECT *
+          FROM NBS_NOTIFY_RECEIVER
+         WHERE RECEIVER_ID=#id#
+    </select>
+
+    <select id="selectJobNotifyReceiverByQuery" parameterClass="map" resultMap="JobNotifyReceiver-ResultMap" >/* selectJobNotifyReceiverByQuery */
+        SELECT *
+          FROM NBS_NOTIFY_RECEIVER
+          $queryCondition$
+          $orderBy$
+    </select>
+
+    <select id="selectJobNotifyReceiverByIdList" parameterClass="map" resultMap="JobNotifyReceiver-ResultMap" >/* selectJobNotifyReceiverByIdList */
+        SELECT *
+          FROM NBS_NOTIFY_RECEIVER
+        <dynamic prepend="WHERE">
+            <iterate property="idList" open="RECEIVER_ID in (" close=")" conjunction=",">#idList[]#</iterate>
+        </dynamic>
+         $orderBy$
+    </select>
+
+    <insert id="insertJobNotifyReceiver" parameterClass="nexcore.scheduler.entity.JobNotifyReceiver">/* insertJobNotifyReceiver */
+        INSERT INTO NBS_NOTIFY_RECEIVER
+               (RECEIVER_ID, RECEIVER_NAME, RECEIVER_DESC, RECV_BY_EMAIL, EMAIL_ADDR, RECV_BY_SMS, SMS_NUM, RECV_BY_MESSENGER, MESSENGER_ID,
+                RECV_BY_TERMINAL, TERMINAL_ID, RECV_BY_DEV1, DEV1_POINT, RECV_BY_DEV2, DEV2_POINT, RECV_BY_DEV3, DEV3_POINT, LAST_MODIFY_TIME)
+        VALUES (NBS_NOTIFY_RECEIVER_SEQ.NEXTVAL, #name:VARCHAR#, #desc#, #recvByEmailYN#, #emailAddr:VARCHAR#, #recvBySmsYN#, #smsNum:VARCHAR#, #recvByMessengerYN#, #messengerId:VARCHAR#,
+                #recvByTerminalYN#, #terminalId:VARCHAR#, #recvByDev1YN:VARCHAR#, #dev1Point:VARCHAR#, #recvByDev2YN:VARCHAR#, #dev2Point:VARCHAR#, #recvByDev3YN:VARCHAR#, #dev3Point:VARCHAR#, #lastModifyTime#)
+    </insert>
+
+    <update id="updateJobNotifyReceiver" parameterClass="nexcore.scheduler.entity.JobNotifyReceiver">/* updateJobNotifyReceiver */
+        UPDATE NBS_NOTIFY_RECEIVER
+           SET RECEIVER_NAME      = #name:VARCHAR#,
+               RECEIVER_DESC      = #desc#,
+               RECV_BY_EMAIL      = #recvByEmailYN#,
+               EMAIL_ADDR         = #emailAddr:VARCHAR#,
+               RECV_BY_SMS        = #recvBySmsYN#,
+               SMS_NUM            = #smsNum:VARCHAR#,
+               RECV_BY_MESSENGER  = #recvByMessengerYN#,
+               MESSENGER_ID       = #messengerId:VARCHAR#,
+               RECV_BY_TERMINAL   = #recvByTerminalYN#,
+               TERMINAL_ID        = #terminalId:VARCHAR#,
+               RECV_BY_DEV1       = #recvByDev1YN:VARCHAR#,
+               DEV1_POINT         = #dev1Point:VARCHAR#,
+               RECV_BY_DEV2       = #recvByDev2YN:VARCHAR#,
+               DEV2_POINT         = #dev2Point:VARCHAR#,
+               RECV_BY_DEV3       = #recvByDev3YN:VARCHAR#,
+               DEV3_POINT         = #dev3Point:VARCHAR#,
+               LAST_MODIFY_TIME   = #lastModifyTime#
+         WHERE RECEIVER_ID        = #id#
+    </update>
+
+    <delete id="deleteJobNotifyReceiver" parameterClass="int">/* deleteJobNotifyReceiver */
+        DELETE FROM NBS_NOTIFY_RECEIVER WHERE RECEIVER_ID=#id#
+    </delete>
+
+    <!-- ■■■■■■■■■■■■■ User ■■■■■■■■■■■■■=== -->
+
+    <resultMap id="User-ResultMap" class="nexcore.scheduler.entity.User" groupBy="id">
+        <result property="id"                column="USER_ID"/>
+        <result property="password"          column="USER_PASSWD"/>
+        <result property="name"              column="USER_NAME"/>
+        <result property="desc"              column="USER_DESC"/>
+        <result property="team1"             column="TEAM1"/>
+        <result property="team2"             column="TEAM2"/>
+        <result property="email"             column="EMAIL"/>
+        <result property="phone"             column="PHONE"/>
+        <result property="adminYN"           column="IS_ADMIN"/>
+        <result property="operatorYN"        column="IS_OPERATOR"/>
+        <result property="activeYN"          column="IS_ACTIVE"/>
+        <result property="operateJobIdExp"   column="OPER_JOB_ID_EXP"/>
+        <result property="createTime"        column="CREATE_TIME"/>
+        <result property="lastModifyTime"    column="LAST_MODIFY_TIME"/>
+        <result property="authList"          resultMap="nbs.monitor.UserAuth-ResultMap"/>
+    </resultMap>
+
+    <resultMap id="UserAuth-ResultMap" class="nexcore.scheduler.entity.UserAuth">
+        <result property="userId"            column="OWNER_USER_ID"/>
+		<result property="authKind"          column="AUTH_KIND"/>
+        <result property="targetObject"      column="TARGET_OBJECT"/>
+    </resultMap>
+
+    <select id="selectUser" parameterClass="string" resultMap="User-ResultMap" >/* selectUser */
+        SELECT A.*, B.USER_ID AS OWNER_USER_ID, B.AUTH_KIND, B.TARGET_OBJECT
+          FROM NBS_USER A LEFT JOIN NBS_USER_AUTH B
+            ON A.USER_ID=B.USER_ID
+         WHERE A.USER_ID=#id#
+    </select>
+
+    <select id="selectUserByQuery" parameterClass="map" resultMap="User-ResultMap" >/* selectUserByQuery */
+        SELECT A.*, B.USER_ID AS OWNER_USER_ID, B.AUTH_KIND, B.TARGET_OBJECT
+          FROM NBS_USER A LEFT JOIN NBS_USER_AUTH B
+            ON A.USER_ID=B.USER_ID
+          $queryCondition$
+          $orderBy$
+    </select>
+
+    <insert id="insertUser" parameterClass="nexcore.scheduler.entity.User">/* insertUser */
+        INSERT INTO NBS_USER
+               (USER_ID, USER_PASSWD, USER_NAME, USER_DESC, TEAM1, TEAM2, EMAIL, PHONE, IS_ADMIN, IS_OPERATOR, IS_ACTIVE, OPER_JOB_ID_EXP, CREATE_TIME, LAST_MODIFY_TIME)
+        VALUES (#id#, #password#, #name#, #desc:VARCHAR#, #team1:VARCHAR#, #team2:VARCHAR#, #email:VARCHAR#, #phone:VARCHAR#, #adminYN#, #operatorYN#, #activeYN#, #operateJobIdExp:VARCHAR#, #createTime#, #lastModifyTime#)
+    </insert>
+
+    <insert id="insertUserAuth" parameterClass="nexcore.scheduler.entity.UserAuth">/* insertUserAuth */
+        INSERT INTO NBS_USER_AUTH
+               (USER_ID, AUTH_KIND, TARGET_OBJECT)
+        VALUES (#userId#, #authKind#, #targetObject#)
+    </insert>
+
+    <update id="updateUser" parameterClass="nexcore.scheduler.entity.User">/* updateUser */
+        UPDATE NBS_USER
+           SET USER_NAME         = #name#,
+        <isNotEmpty property="password">
+               USER_PASSWD       = #password#,
+        </isNotEmpty>
+               USER_DESC         = #desc:VARCHAR#,
+               TEAM1             = #team1:VARCHAR#,
+               TEAM2             = #team2:VARCHAR#,
+               EMAIL             = #email:VARCHAR#,
+               PHONE             = #phone:VARCHAR#,
+               IS_ADMIN          = #adminYN#,
+               IS_OPERATOR       = #operatorYN#,
+               IS_ACTIVE         = #activeYN#,
+               OPER_JOB_ID_EXP   = #operateJobIdExp:VARCHAR#,
+               LAST_MODIFY_TIME  = #lastModifyTime#
+         WHERE USER_ID        = #id#
+    </update>
+
+    <update id="updatePassword" parameterClass="nexcore.scheduler.entity.User">/* updatePassword */
+        UPDATE NBS_USER
+           SET USER_PASSWD       = #password#,
+               LAST_MODIFY_TIME  = #lastModifyTime#
+         WHERE USER_ID        = #id#
+    </update>
+
+    <delete id="deleteUser" parameterClass="string">/* deleteUser */
+        DELETE FROM NBS_USER WHERE USER_ID=#id#
+    </delete>
+
+    <delete id="deleteUserAuth" parameterClass="string">/* deleteUserAuth */
+        DELETE FROM NBS_USER_AUTH WHERE USER_ID=#id#
+    </delete>
+
+    <!-- ■■■■■■■■■■■■■ Old Job Cleaner ■■■■■■■■■■■■■ -->
+    <select id="selectTargetJobInsIdList" parameterClass="string" resultClass="string" >/* selectTargetJobInsIdList */
+    <![CDATA[
+        SELECT JOB_INSTANCE_ID
+          FROM NBS_JOB_INS
+         WHERE ACTIVATION_TIME <= #deleteBaseDate#
+           AND JOB_STATE NOT IN ('R', 'P')
+    ]]>
+    </select>
+
+    <delete id="deleteOldJobIns" parameterClass="string">/* deleteOldJobIns */
+    <![CDATA[
+        DELETE
+          FROM NBS_JOB_INS
+         WHERE ACTIVATION_TIME <= #deleteBaseDate#
+           AND JOB_STATE NOT IN ('R', 'P')
+    ]]>
+    </delete>
+
+    <delete id="deleteOldJobInsObjStore">/* deleteOldJobInsObjStore */
+        DELETE
+          FROM NBS_JOB_INS_OBJ_STORE A
+         WHERE NOT EXISTS (SELECT 1 FROM NBS_JOB_INS B WHERE A.JOB_INSTANCE_ID=B.JOB_INSTANCE_ID)
+    </delete>
+
+    <delete id="deleteOldJobInsPreJob">/* deleteOldJobInsPreJob */
+        DELETE
+          FROM NBS_JOB_INS_PREJOB A
+         WHERE NOT EXISTS (SELECT 1 FROM NBS_JOB_INS B WHERE A.JOB_INSTANCE_ID=B.JOB_INSTANCE_ID)
+    </delete>
+
+    <delete id="deleteOldJobExe">/* deleteOldJobExe */
+        DELETE
+          FROM NBS_JOB_EXE A
+         WHERE NOT EXISTS (SELECT 1 FROM NBS_JOB_INS B WHERE A.JOB_INSTANCE_ID=B.JOB_INSTANCE_ID)
+    </delete>
+
+    <delete id="deleteOldJobExeObjStore">/* deleteOldJobExeObjStore */
+        DELETE
+          FROM NBS_JOB_EXE_OBJ_STORE A
+         WHERE NOT EXISTS (SELECT 1 FROM NBS_JOB_EXE B WHERE A.JOB_EXECUTION_ID=B.JOB_EXECUTION_ID)
+    </delete>
+    
+    <delete id="deleteOldTimeSchedulerLog" parameterClass="map"><![CDATA[/* deleteOldTimeSchedulerLog */
+        DELETE FROM NBS_TIMESCH_LOG WHERE TS_DATE < #tsDate# ]]>
+    </delete>
+
+    <delete id="deleteOldIdGenBase" parameterClass="map"><![CDATA[/* deleteOldIdGenBase */
+        DELETE FROM NBS_IDGEN_BASE A
+         WHERE (ID_TYPE = 'JE'
+           AND NOT EXISTS (SELECT 1 FROM NBS_JOB_INS B WHERE B.JOB_INSTANCE_ID = A.KEY_NAME))
+            OR (ID_TYPE = 'JI'
+           AND NOT EXISTS (SELECT 1 FROM NBS_JOB_INS B WHERE B.JOB_INSTANCE_ID LIKE A.KEY_NAME||'%'))
+            OR (ID_TYPE = 'REQ'
+           AND KEY_NAME < #deleteBaseDate#)]]>
+    </delete>
+    
+    <insert id="insertCleanLog" parameterClass="map">/* insertCleanLog */
+        INSERT INTO NBS_CLEAN_LOG
+            (RUN_DATE, DEL_BASE_DATE, SYSTEM_ID, CLEAN_START_TIME, LAST_MODIFY_TIME)
+        VALUES ( #runDate#, #delBaseDate#, #systemId#, #cleanStartTime#, #lastModifyTime#)
+    </insert>
+
+    <update id="updateCleanLog" parameterClass="map">/* updateCleanLog */
+        UPDATE NBS_CLEAN_LOG
+           SET JOB_INS_CNT          = #jobInsCnt#,
+               JOB_INS_OBJ_CNT      = #jobInsObjCnt#,
+               JOB_INS_PREJOB_CNT   = #jobInsPreJobCnt#,
+               JOB_EXE_CNT          = #jobExeCnt#,
+               JOB_EXE_OBJ_CNT      = #jobExeObjCnt#,
+               UPLOAD_TEMP_FILE_CNT = #uploadTempFileCnt#,
+               TIMESCH_LOG_CNT      = #timeSchLogCnt#,
+               IDGEN_BASE_CNT       = #idGenBaseCnt#,
+               CLEAN_END_TIME       = #cleanEndTime#,
+               LAST_MODIFY_TIME     = #lastModifyTime#
+         WHERE RUN_DATE = #runDate# 
+    </update>
+
+    <!-- ■■■■■■■■■■■■■ Notify send ■■■■■■■■■■■■■ -->
+    <resultMap id="JobNotifySendInfo-ResultMap" class="nexcore.scheduler.entity.JobNotifySendInfo" >
+        <result property="seqNo"            column="SEQ_NO"/>
+        <result property="jobId"            column="JOB_ID"/>
+        <result property="jobInstanceId"    column="JOB_INSTANCE_ID"/>
+        <result property="jobExecutionId"   column="JOB_EXECUTION_ID"/>
+        <result property="jobDesc"          column="JOB_DESC"/>
+        <result property="agentNode"        column="AGENT_NODE"/>
+        <result property="jobGroupId"       column="JOB_GROUP_ID"/>
+        <result property="owner"            column="OWNER"/>
+        <result property="ownerTel"         column="OWNER_PHONE"/>
+        <result property="startTime"        column="START_TIME"/>
+        <result property="endTime"          column="END_TIME"/>
+        <result property="operatorId"       column="OPERATOR_ID"/>
+        <result property="operatorName"     column="OPERATOR_NAME"/>
+        <result property="operatorIp"       column="OPERATOR_IP"/>
+        <result property="returnCode"       column="RETURN_CODE"/>
+        <result property="errorMsg"         column="ERROR_MSG"/>
+        <result property="receiverId"       column="RECEIVER_ID"/>
+        <result property="receiverName"     column="RECEIVER_NAME"/>
+        <result property="recvType"         column="RECV_TYPE"/>
+        <result property="recvPoint"        column="RECV_POINT"/>
+        <result property="createTime"       column="CREATE_TIME"/>
+        <result property="sendState"        column="SEND_STATE"/>
+        <result property="sendTime"         column="SEND_TIME"/>
+        <result property="tryCount"         column="TRY_COUNT"/>
+        <result property="notifyId"         column="NOTIFY_ID"/>
+        <result property="checkValue1"      column="CHECK_VALUE1"/>
+        <result property="checkValue2"      column="CHECK_VALUE2"/>
+        <result property="checkValue3"      column="CHECK_VALUE3"/>
+        <result property="procSystemId"     column="PROC_SYSTEM_ID"/>
+    </resultMap>
+	<resultMap id="JobNotifySendInfoForCount-ResultMap" class="java.util.HashMap">
+        <result property="receiverId" column="RECEIVER_ID" javaType="java.lang.String"/>
+        <result property="sendTime"   column="SEND_TIME"   javaType="java.lang.String"/>
+        <result property="sendCount"  column="SEND_COUNT"  javaType="java.lang.String"/>
+    </resultMap>
+    
+    <insert id="insertJobNotifySendList" parameterClass="nexcore.scheduler.entity.JobNotifySendInfo">/* insertJobNotifySendList */
+        INSERT INTO NBS_NOTIFY_SEND_LIST
+               (SEQ_NO, JOB_EXECUTION_ID, JOB_ID, JOB_DESC, AGENT_NODE, RETURN_CODE, ERROR_MSG, RECEIVER_ID, RECEIVER_NAME, RECV_TYPE, RECV_POINT, CREATE_TIME, SEND_STATE, TRY_COUNT, NOTIFY_ID, CHECK_VALUE1, CHECK_VALUE2, CHECK_VALUE3)
+        VALUES (NBS_NOTIFY_SEND_LIST_SEQ.NEXTVAL, #jobExecutionId#, #jobId#, #jobDesc:VARCHAR#, #agentNode#, #returnCode#, #errorMsg:VARCHAR#, #receiverId#, #receiverName#, #recvType#, #recvPoint:VARCHAR#, #createTime#, #sendState#, 0, #notifyId#, #checkValue1:VARCHAR#, #checkValue2:VARCHAR#, #checkValue3:VARCHAR#)
+    </insert>
+    
+    <select id="selectJobNotifySendListForCount" parameterClass="string" resultMap="JobNotifySendInfoForCount-ResultMap">/* selectJobNotifySendListForCount */
+    	SELECT RECEIVER_ID, MAX(CREATE_TIME) as SEND_TIME, COUNT(*) as SEND_COUNT
+		FROM (
+				SELECT RECEIVER_ID, CREATE_TIME
+				FROM NBS_NOTIFY_SEND_LIST
+				WHERE JOB_EXECUTION_ID = #jobExecutionId#
+				GROUP BY JOB_EXECUTION_ID, RECEIVER_ID, CREATE_TIME
+			) TEMP_NOTIFY_COUNT
+		GROUP BY RECEIVER_ID
+    </select>
+
+    <select id="selectJobNotifySendList" parameterClass="map" resultMap="JobNotifySendInfo-ResultMap" >/* selectJobNotifySendList */
+      <![CDATA[
+        SELECT A.*, B.OWNER, B.JOB_GROUP_ID, (SELECT PHONE FROM NBS_USER WHERE USER_NAME=B.OWNER) OWNER_PHONE,
+               C.JOB_INSTANCE_ID, C.START_TIME, C.END_TIME, C.OPERATOR_ID, C.OPERATOR_IP, (SELECT USER_NAME FROM NBS_USER WHERE USER_ID=C.OPERATOR_ID) OPERATOR_NAME
+          FROM NBS_NOTIFY_SEND_LIST A,  NBS_JOB_DEF B, NBS_JOB_EXE C
+         WHERE A.JOB_ID = B.JOB_ID
+           AND A.JOB_EXECUTION_ID = C.JOB_EXECUTION_ID
+           AND (A.SEND_TIME IS NULL OR A.SEND_TIME < #retryBaseTime#  /* BEFORE 1 MIN */)
+           AND A.CREATE_TIME >  #fromCreateTime#
+           AND A.TRY_COUNT   <  #maxTryCount#
+           AND A.SEND_STATE  IN ('I', 'F', 'R') 
+           AND (PROC_SYSTEM_ID IS NULL OR PROC_SYSTEM_ID = #procSystemId:VARCHAR#)
+           AND ROWNUM        <= 100
+      ]]>
+    </select>
+
+    <update id="updateJobNotifySendListForStart" parameterClass="nexcore.scheduler.entity.JobNotifySendInfo">/* updateJobNotifySendList */
+      <![CDATA[
+        UPDATE NBS_NOTIFY_SEND_LIST
+           SET SEND_STATE     = #sendState#,
+               PROC_SYSTEM_ID = #procSystemId#
+         WHERE SEQ_NO         = #seqNo#
+           AND SEND_STATE    <> 'R'
+      ]]>
+    </update>
+
+    <update id="updateJobNotifySendListForEnd" parameterClass="nexcore.scheduler.entity.JobNotifySendInfo">/* updateJobNotifySendList */
+        UPDATE NBS_NOTIFY_SEND_LIST
+           SET SEND_STATE = #sendState#,
+               SEND_TIME  = #sendTime:VARCHAR#,
+               TRY_COUNT  = #tryCount#
+         WHERE SEQ_NO     = #seqNo#
+    </update>
+
+	<delete id="deleteJobOldNotifySendList" parameterClass="string">/* deleteJobOldNotifySendList */
+	  <![CDATA[
+        DELETE FROM NBS_NOTIFY_SEND_LIST
+        WHERE  CREATE_TIME <= #createTime:VARCHAR#
+      ]]>
+    </delete>
+    
+    <select id="selectJobNotifySendListByDynamicQuery" parameterClass="map" resultClass="nexcore.scheduler.entity.JobNotifySendInfo">/* selectJobNotifySendListByDynamicQuery */
+		SELECT /*+ INDEX_$orderBy$(A NBS_NOTIFY_SEND_LIST_PK) */ SEQ_NO AS seqNo, JOB_EXECUTION_ID AS jobExecutionId, 
+				JOB_ID AS jobId, JOB_DESC AS jobDesc, AGENT_NODE AS agentNode, RETURN_CODE AS returnCode, 
+				ERROR_MSG AS errorMsg, RECEIVER_ID AS receiverId, RECEIVER_NAME AS receiverName, RECV_TYPE AS recvType, 
+				RECV_POINT AS recvPoint, CREATE_TIME AS createTime, SEND_STATE AS sendState, SEND_TIME AS sendTime, TRY_COUNT AS tryCount
+        FROM  NBS_NOTIFY_SEND_LIST A
+<![CDATA[ WHERE CREATE_TIME >= #firstTime:VARCHAR# AND CREATE_TIME <= #lastTime:VARCHAR# ]]>
+        <dynamic>
+        	<isNotEmpty prepend="AND" property="firstSeq">
+<![CDATA[  	SEQ_NO >= #firstSeq# ]]>
+        	</isNotEmpty>
+        	<isNotEmpty prepend="AND" property="lastSeq">
+<![CDATA[  	SEQ_NO <= #lastSeq# ]]>
+        	</isNotEmpty> 
+        	<isNotEmpty prepend="AND" property="preSeq">
+<![CDATA[  	SEQ_NO < #preSeq# ]]>
+        	</isNotEmpty>
+        	<isNotEmpty prepend="AND" property="postSeq">
+<![CDATA[  	SEQ_NO > #postSeq# ]]>
+        	</isNotEmpty>
+          	<isNotEmpty prepend="AND" property="jobId">
+            JOB_ID LIKE '%' || #jobId# || '%'
+            </isNotEmpty>
+        	<isNotEmpty prepend="AND" property="jobDesc">
+           	JOB_DESC LIKE '%' || #jobDesc# || '%'
+        	</isNotEmpty>
+        	<isNotEmpty prepend="AND" property="receiverName">
+           	RECEIVER_NAME LIKE '%' || #receiverName# || '%'
+        	</isNotEmpty>
+        	<isNotEmpty prepend="AND" property="recvType">
+           	RECV_TYPE LIKE '%' || #recvType# || '%'
+        	</isNotEmpty>
+        	<isNotEmpty prepend="AND" property="recvPoint">
+           	RECV_POINT LIKE '%' || #recvPoint# || '%'
+        	</isNotEmpty>
+      	</dynamic>
+<![CDATA[ AND ROWNUM <= #cntPerScreen# ]]>
+    </select>
+    
+    <select id="getJobNotifySendListCount" parameterClass="map" resultClass="java.lang.Integer">/* "getJobNotifySendListCount" */
+			SELECT COUNT(*)
+        	FROM  NBS_NOTIFY_SEND_LIST
+  <![CDATA[ WHERE CREATE_TIME >= #firstTime:VARCHAR# AND CREATE_TIME <= #lastTime:VARCHAR# ]]>
+              <dynamic> 
+              	<isNotEmpty prepend="AND" property="jobId">
+                JOB_ID LIKE '%' || #jobId# || '%'
+        	    </isNotEmpty>
+        		<isNotEmpty prepend="AND" property="jobDesc">
+               	JOB_DESC LIKE '%' || #jobDesc# || '%'
+        		</isNotEmpty>
+        		<isNotEmpty prepend="AND" property="receiverName">
+               	RECEIVER_NAME LIKE '%' || #receiverName# || '%'
+        		</isNotEmpty>
+        		<isNotEmpty prepend="AND" property="recvType">
+               	RECV_TYPE LIKE '%' || #recvType# || '%'
+        		</isNotEmpty>
+        		<isNotEmpty prepend="AND" property="recvPoint">
+               	RECV_POINT LIKE '%' || #recvPoint# || '%'
+        		</isNotEmpty>
+      		  </dynamic>      
+    </select>
+
+    <!-- ■■■■■■■■■■■■■ JobGroupAttrDef ■■■■■■■■■■■■■=== -->
+    <resultMap id="JobGroupAttrDef-ResultMap" class="nexcore.scheduler.entity.JobGroupAttrDef" >
+        <result property="id"               column="ATTR_ID"         />
+        <result property="name"             column="ATTR_NAME"       />
+        <result property="desc"             column="ATTR_DESC"       />
+        <result property="valueType"        column="VALUE_TYPE"      />
+        <result property="valueCheck"       column="VALUE_CHECK"     />
+        <result property="displayLine"      column="DISPLAY_LINE"    />
+        <result property="displayMonitorYN"   column="DISPLAY_MONITOR" />
+        <result property="displayOrder"     column="DISPLAY_ORDER"   />
+        <result property="lastModifyTime"   column="LAST_MODIFY_TIME"/>
+    </resultMap>
+
+    <select id="selectJobGroupAttrDef" parameterClass="string" resultMap="JobGroupAttrDef-ResultMap" >/* selectJobGroupAttrDef */
+        SELECT *
+          FROM NBS_JOBGROUP_ATTR_DEF
+         WHERE ATTR_ID=#id#
+    </select>
+
+    <select id="selectJobGroupAttrDefByQuery" parameterClass="map" resultMap="JobGroupAttrDef-ResultMap" >/* selectJobGroupAttrDefByQuery */
+        SELECT *
+          FROM NBS_JOBGROUP_ATTR_DEF
+          $queryCondition$
+          $orderBy$
+    </select>
+
+    <insert id="insertJobGroupAttrDef" parameterClass="nexcore.scheduler.entity.JobGroupAttrDef">/* insertJobGroupAttrDef */
+        INSERT INTO NBS_JOBGROUP_ATTR_DEF
+               (ATTR_ID, ATTR_NAME, ATTR_DESC, VALUE_TYPE, VALUE_CHECK, DISPLAY_LINE, DISPLAY_MONITOR, DISPLAY_ORDER, LAST_MODIFY_TIME)
+        VALUES (#id#,#name:VARCHAR#,#desc:VARCHAR#,#valueType:VARCHAR#,#valueCheck:VARCHAR#,#displayLine:INTEGER#,#displayMonitorYN:VARCHAR#,#displayOrder:INTEGER#,#lastModifyTime:VARCHAR#)
+    </insert>
+
+    <update id="updateJobGroupAttrDef" parameterClass="nexcore.scheduler.entity.JobGroupAttrDef">/* updateJobGroupAttrDef */
+        UPDATE NBS_JOBGROUP_ATTR_DEF
+           SET ATTR_NAME           = #name:VARCHAR#,
+               ATTR_DESC           = #desc:VARCHAR#,
+               VALUE_TYPE          = #valueType:VARCHAR#,
+               VALUE_CHECK         = #valueCheck:VARCHAR#,
+               DISPLAY_LINE        = #displayLine:INTEGER#,
+               DISPLAY_MONITOR     = #displayMonitorYN:VARCHAR#,
+               DISPLAY_ORDER       = #displayOrder:INTEGER#,
+               LAST_MODIFY_TIME    = #lastModifyTime:VARCHAR#
+         WHERE ATTR_ID = #id#
+    </update>
+
+    <delete id="deleteJobGroupAttrDef" parameterClass="string">/* deleteJobGroupAttrDef */
+        DELETE FROM NBS_JOBGROUP_ATTR_DEF WHERE ATTR_ID=#id#
+    </delete>
+
+    <!-- ■■■■■■■■■■■■■ JobGroup ■■■■■■■■■■■■■=== -->
+
+    <resultMap id="JobGroup-ResultMap" class="nexcore.scheduler.entity.JobGroup" groupBy="id">
+        <result property="id"              column="GROUP_ID"        />
+        <result property="name"            column="GROUP_NAME"      />
+        <result property="desc"            column="GROUP_DESC"      />
+        <result property="parentId"        column="PARENT_ID"       />
+        <result property="creatorId"       column="CREATOR_ID"      />
+        <result property="ownerId"         column="OWNER_ID"        />
+        <result property="createTime"      column="CREATE_TIME"     />
+        <result property="lastModifyTime"  column="LAST_MODIFY_TIME"/>
+        <result property="attributeList"   resultMap="nbs.monitor.JobGroupAttr-ResultMap"/>
+    </resultMap>
+
+    <resultMap id="JobGroupAttr-ResultMap" class="nexcore.scheduler.entity.JobGroupAttr">
+        <result property="groupId"         column="OWNER_GROUP_ID"  />
+        <result property="id"              column="ATTR_ID"         />
+        <result property="value"           column="ATTR_VALUE"      />
+    </resultMap>
+
+    <select id="selectJobGroup" parameterClass="string" resultMap="JobGroup-ResultMap" >/* selectJobGroup */
+        SELECT a.*, b.GROUP_ID AS OWNER_GROUP_ID, b.ATTR_ID, b.ATTR_VALUE 
+          FROM NBS_JOBGROUP a LEFT JOIN NBS_JOBGROUP_ATTR b
+            ON a.GROUP_ID = b.GROUP_ID
+         WHERE a.GROUP_ID=#id#
+    </select>
+    
+    <select id="selectJobGroupByQuery" parameterClass="map" resultMap="JobGroup-ResultMap" >/* selectJobGroupByQuery */
+        SELECT a.*, b.GROUP_ID AS OWNER_GROUP_ID, b.ATTR_ID, b.ATTR_VALUE 
+          FROM NBS_JOBGROUP a LEFT JOIN NBS_JOBGROUP_ATTR b
+            ON a.GROUP_ID = b.GROUP_ID
+            $queryCondition$
+            $orderBy$
+    </select>
+
+    <select id="selectJobGroupByDynamicQuery" parameterClass="map" resultMap="JobGroup-ResultMap" >/* selectJobGroupByDynamicQuery */
+        SELECT a.*, b.GROUP_ID AS OWNER_GROUP_ID, b.ATTR_ID, b.ATTR_VALUE 
+          FROM NBS_JOBGROUP a LEFT JOIN NBS_JOBGROUP_ATTR b
+            ON a.GROUP_ID = b.GROUP_ID
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="groupIdLike">
+               a.GROUP_ID LIKE #groupIdLike#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="groupNameLike">
+               a.GROUP_NAME LIKE #groupNameLike#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="groupDescLike">
+               a.GROUP_DESC LIKE #groupDescLike#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="authorizedJobGroupIdViewList">
+                <iterate property="authorizedJobGroupIdViewList" open="a.GROUP_ID in (" close=")" conjunction=",">#authorizedJobGroupIdViewList[]#</iterate>
+            </isNotEmpty>
+        </dynamic>
+            $orderBy$
+    </select>
+
+    <insert id="insertJobGroup" parameterClass="nexcore.scheduler.entity.JobGroup">/* insertJobGroup */
+        INSERT INTO NBS_JOBGROUP
+               (GROUP_ID, GROUP_NAME, GROUP_DESC, PARENT_ID, CREATOR_ID, OWNER_ID, CREATE_TIME, LAST_MODIFY_TIME)
+        VALUES (#id#,#name:VARCHAR#,#desc:VARCHAR#,#parentId:VARCHAR#,#creatorId:VARCHAR#,#ownerId:VARCHAR#,#createTime:VARCHAR#,#lastModifyTime:VARCHAR#)
+    </insert>
+    <insert id="insertJobGroupAttr" parameterClass="nexcore.scheduler.entity.JobGroupAttr">/* insertJobGroupAttr */
+        INSERT INTO NBS_JOBGROUP_ATTR
+               (GROUP_ID, ATTR_ID, ATTR_VALUE)
+        VALUES (#groupId#, #id:VARCHAR#, #value:VARCHAR#)
+    </insert>
+
+    <update id="updateJobGroup" parameterClass="nexcore.scheduler.entity.JobGroup">/* updateJobGroup */
+        UPDATE NBS_JOBGROUP
+           SET GROUP_NAME       = #name:VARCHAR#,
+               GROUP_DESC       = #desc:VARCHAR#,
+               PARENT_ID        = #parentId:VARCHAR#,
+               OWNER_ID         = #ownerId:VARCHAR#,
+               LAST_MODIFY_TIME = #lastModifyTime:VARCHAR#
+         WHERE GROUP_ID = #id#
+    </update>
+
+    <delete id="deleteJobGroup" parameterClass="string">/* deleteJobGroup */
+        DELETE FROM NBS_JOBGROUP WHERE GROUP_ID=#id#
+    </delete>
+
+    <delete id="deleteJobGroupAttr" parameterClass="string">/* deleteJobGroupAttr */
+        DELETE FROM NBS_JOBGROUP_ATTR WHERE GROUP_ID=#id#
+    </delete>
+    
+</sqlMap>

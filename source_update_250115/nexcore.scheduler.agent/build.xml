@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- WARNING: Eclipse auto-generated file.
+              Any modifications will be overwritten.
+              To include a user specific buildfile here, simply create one in the same
+              directory with the processing instruction <?eclipse.ant.import?>
+              as the first entry and export the buildfile again. --><project basedir="." default="build" name="nexcore.scheduler.agent">
+    <property environment="env"/>
+    <property name="ECLIPSE_HOME" value="../../../../eclipse-jee-2024-09-R-win32-x86_64/eclipse/"/>
+    <property name="nexcore.scheduler.common.location" value="../nexcore.scheduler.common"/>
+    <property name="debuglevel" value="source,lines,vars"/>
+    <property name="target" value="22"/>
+    <property name="source" value="22"/>
+    <path id="nexcore.scheduler.common.classpath">
+        <pathelement location="${nexcore.scheduler.common.location}/bin"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/spring-aop-3.2.16.RELEASE.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/spring-aspects-3.2.16.RELEASE.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/spring-beans-3.2.16.RELEASE.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/spring-context-3.2.16.RELEASE.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/spring-context-support-3.2.16.RELEASE.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/spring-core-3.2.16.RELEASE.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/spring-expression-3.2.16.RELEASE.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/spring-instrument-3.2.16.RELEASE.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/spring-jdbc-3.2.16.RELEASE.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/spring-orm-3.2.16.RELEASE.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/spring-tx-3.2.16.RELEASE.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/commons-logging-1.2.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/commons-lang-2.6.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/commons-io-2.5.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/commons-codec-1.10.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/nexcore-framework-supports-7.0.0.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/commons-beanutils-1.9.2.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/commons-collections-3.2.2.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/commons-dbcp-1.4.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/commons-fileupload-1.3.2.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/commons-net-3.5.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/commons-pool-1.6.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/ibatis-2.3.4.726.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/log4j-1.2.17.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/poi-3.14.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/httpclient-4.5.2.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/httpcore-4.4.4.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/jackson-annotations-2.6.0.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/jackson-core-2.6.7.jar"/>
+        <pathelement location="${nexcore.scheduler.common.location}/lib/jackson-databind-2.6.7.jar"/>
+    </path>
+    <path id="nexcore.scheduler.agent.classpath">
+        <pathelement location="bin"/>
+        <path refid="nexcore.scheduler.common.classpath"/>
+        <pathelement location="lib/quartz-all-1.6.0.jar"/>
+    </path>
+    <target name="init">
+        <mkdir dir="bin"/>
+        <copy includeemptydirs="false" todir="bin">
+            <fileset dir="src/java">
+                <exclude name="**/*.launch"/>
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
+        <copy includeemptydirs="false" todir="bin">
+            <fileset dir="src/config">
+                <exclude name="**/*.launch"/>
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
+    </target>
+    <target name="clean">
+        <delete dir="bin"/>
+    </target>
+    <target depends="clean" name="cleanall">
+        <ant antfile="build.xml" dir="${nexcore.scheduler.common.location}" inheritAll="false" target="clean"/>
+    </target>
+    <target depends="build-subprojects,build-project" name="build"/>
+    <target name="build-subprojects">
+        <ant antfile="build.xml" dir="${nexcore.scheduler.common.location}" inheritAll="false" target="build-project">
+            <propertyset>
+                <propertyref name="build.compiler"/>
+            </propertyset>
+        </ant>
+    </target>
+    <target depends="init" name="build-project">
+        <echo message="${ant.project.name}: ${ant.file}"/>
+        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" includeantruntime="false" source="${source}" target="${target}">
+            <src path="src/java"/>
+            <src path="src/config"/>
+            <classpath refid="nexcore.scheduler.agent.classpath"/>
+        </javac>
+    </target>
+    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
+    <target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
+        <copy todir="${ant.library.dir}">
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </copy>
+        <unzip dest="${ant.library.dir}">
+            <patternset includes="jdtCompilerAdapter.jar"/>
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </unzip>
+    </target>
+    <target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
+        <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
+        <antcall target="build"/>
+    </target>
+  	<target name="jar" depends="build">
+  		    <mkdir dir="dist"/>
+  		    <jar destfile="dist/nexcore-scheduler-agent-4.0.1.jar">
+  		        <!-- nexcore 디렉토리만 추가 -->
+  		        <fileset dir="bin">
+  		            <include name="nexcore/**"/>
+  		        </fileset>
+
+  		        <!-- Main-Class 속성을 지정하여 MANIFEST.MF 생성 -->
+  		        <manifest>
+  		    	    <attribute name="Specification-Title" value="nexcore-scheduler-agent"/>
+  		    	    <attribute name="Specification-Version" value="4.0.1"/>
+  		        	<attribute name="Specification-Vendor" value="SK Holdings C&amp;C"/>
+  		    	    <attribute name="Implementation-Title" value="nexcore-scheduler-agent"/>
+  		    	    <attribute name="Implementation-Version" value="4.0.1"/>
+  		    	    <attribute name="Implementation-Vendor-Id" value="nexcore.scheduler"/>
+  		    	    <attribute name="Implementation-Vendor" value="SK Holdings C&amp;C"/>
+  		        </manifest>
+  		    </jar>
+  		</target>
+</project>

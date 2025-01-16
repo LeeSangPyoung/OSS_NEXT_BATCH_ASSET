@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Ant-Version: Apache Ant 1.9.2
+Created-By: 1.6.0_12-b04 (Sun Microsystems Inc.)
+Specification-Title: nexcore-scheduler-agent
+Specification-Version: 4.0.1
+Specification-Vendor: SK Holdings C&C
+Implementation-Title: nexcore-scheduler-agent
+Implementation-Version: 4.0.1
+Implementation-Vendor-Id: nexcore.scheduler
+Implementation-Vendor: SK Holdings C&C
+Build-Jdk: 1.6.0_12
+Build-Time: 2017-04-07 18:44:03,069
+Built-By: SK Holdings C&C
+

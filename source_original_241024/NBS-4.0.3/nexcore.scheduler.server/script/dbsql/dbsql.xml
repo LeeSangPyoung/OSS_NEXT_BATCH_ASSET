@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="NEXCORE Batch Scheduler - DB SQL" basedir="." default="main" 
+	xmlns:antcontrib="antlib:net.sf.antcontrib">
+	
+	<property name="base.encoding"     value="UTF-8" />
+	<property name="onerror"           value="continue" /> <!--  continue, abort, stop -->
+	
+	<path id="this.classpath">
+		<fileset dir="lib">
+			<include name="*.jar"/>
+		</fileset>
+	</path>
+	
+	<taskdef resource="net/sf/antcontrib/antlib.xml"
+		uri="antlib:net.sf.antcontrib"
+		classpathref="this.classpath"/>
+	<taskdef name="antform"    
+		classname="com.sardak.antform.AntForm"   
+		classpathref="this.classpath"/>
+	
+	<property name="jdbc.driver.oracle"     value="oracle.jdbc.driver.OracleDriver" />
+	<property name="jdbc.driver.mysql"      value="com.mysql.jdbc.Driver" />
+	<property name="jdbc.driver.mariadb"    value="org.mariadb.jdbc.Driver" />
+	<property name="jdbc.driver.mssql"      value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />
+	<property name="jdbc.driver.db2"        value="com.ibm.db2.jcc.DB2Driver" />
+	<property name="jdbc.driver.postgresql" value="org.postgresql.Driver" />
+	<property name="jdbc.driver.sybase"     value="com.sybase.jdbc4.jdbc.SybDriver" />
+	<property name="jdbc.driver.derby"      value="org.apache.derby.jdbc.EmbeddedDriver" />
+	
+	
+	<tstamp>
+		<format property="build.time" pattern="yyyyMMddHHmmssSSS" locale="ko,KR"/>
+	</tstamp>
+	<property name="out.log"     value="out-${build.time}.log" />
+
+	<target name="main" depends="_ask.inputs">
+		<antcontrib:propertycopy name="jdbc.driver" from="jdbc.driver.${database.product}" />
+		<property      name="scheduler.ddl.dir"      value="ddl" /> 
+		<property      name="scheduler.dml.dir"      value="dml" /> 
+
+		<echo>database.product : ${database.product}</echo>
+		<echo>jdbc.driver      : ${jdbc.driver}</echo>
+		<echo>jdbc.url         : ${jdbc.url}</echo>
+		<echo>jdbc.username    : ${jdbc.username}</echo>
+		<echo>jdbc.password    : ???</echo>
+		
+		<echo>create.table     : ${create.table}</echo>
+		<echo>insert.data      : ${insert.data}</echo>
+		
+		<condition property="isCreateTable">
+			<and>
+				<equals arg1="Yes" arg2="${create.table}"/>
+			</and>
+		</condition>
+
+		<condition property="isInsertData">
+			<and>
+				<equals arg1="Yes" arg2="${insert.data}"/>
+			</and>
+		</condition>
+
+		<antcall target="_create.table"   inheritall="true"/>
+		<antcall target="_insert.data"    inheritall="true"/>
+
+		<record name="${out.log}" action="stop"/>
+	</target>
+	
+	<target name="_ask.inputs">
+		<record name="${out.log}" action="start"/>
+		
+		<echo>#################################################</echo>
+		<echo>## ${build.time} ##</echo>
+		<echo>#################################################</echo>
+		<antform title="NEXCORE Batch Scheduler - DB SQL" >
+			<textProperty label="Encoding"      property="base.encoding" required="true" />
+			<selectionProperty label="OnError"  property="onerror"
+						values="continue,abort,stop "
+						tooltip="..."
+						/>
+
+			<separator/>
+
+			<selectionProperty label="Product" property="database.product"
+						values="oracle,mysql,mariadb,mssql,db2,postgresql,sybase,derby"
+						tooltip="..."
+						/>
+			
+			<textProperty label="JDBC URL"      property="jdbc.url"      required="true" />
+			<textProperty label="JDBC Username" property="jdbc.username" />
+			<textProperty label="JDBC Password" property="jdbc.password" password="true" />
+			
+			<separator/>
+
+			<radioSelectionProperty label="Create Table" property="create.table"
+				values="Yes,No"
+				columns="2"
+				tooltip="..."
+				/>
+			<radioSelectionProperty label="Insert Data" property="insert.data"
+				values="Yes,No"
+				columns="2"
+				tooltip="..."
+				/>
+
+			<controlbar>
+				<button label="Ok"     type="ok" />
+				<button label="Cancel" type="cancel" target="_cancel"/>
+			</controlbar>
+		</antform>
+	</target>
+	
+	<target name="_cancel" >
+		<fail message="User canceled."/>
+		<record name="${out.log}" action="stop"/>
+	</target>
+
+	<target name="_create.table" if="isCreateTable">
+		<sql driver="${jdbc.driver}" url="${jdbc.url}" userid="${jdbc.username}" password="${jdbc.password}" encoding="${base.encoding}" onerror="${onerror}" classpathref="this.classpath" print="true" showheaders="true">
+			<path>
+				<fileset dir="${scheduler.ddl.dir}">
+					<include name="*.${database.product}.ddl"/>
+				</fileset>
+			</path>
+		</sql>
+	</target>
+	
+	<target name="_insert.data" if="isInsertData">
+		<tstamp>
+			<format property="CURTIME" pattern="yyyyMMddHHmmssSSS" />
+		</tstamp>
+		<sql driver="${jdbc.driver}" url="${jdbc.url}" userid="${jdbc.username}" password="${jdbc.password}" encoding="${base.encoding}" onerror="${onerror}" classpathref="this.classpath" >
+			<path>
+				<fileset dir="${scheduler.dml.dir}">
+					<include name="*.dml"/>
+				</fileset>
+			</path>
+		</sql>
+	</target>
+	
+</project>
