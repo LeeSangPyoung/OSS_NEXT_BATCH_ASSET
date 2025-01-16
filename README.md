@@ -70,10 +70,3 @@
 	- scheduler.db.vendor : 사용할 DB를 선택한다.
 	- scheduler.jdbc.* : DB 접속 정보를 입력한다.
 
-
-	![image](https://github.com/user-attachments/assets/01da4442-76c9-4445-8d99-800fa2ce7bea)
-
-
-	- (scheduler-agent)
- 
-	![image](https://github.com/user-attachments/assets/94f1c294-f58b-4135-9ae7-8ecb004dd20a)
